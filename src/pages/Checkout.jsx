@@ -1,0 +1,727 @@
+import { useMemo, useState, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useApp } from '../context/AppContext';
+import { DESTINATIONS, GROUP_MEMBERS, REFUND_POLICY, PAYMENT_METHODS, KYC_TIERS } from '../data/mockTravelData';
+import { IndianRupee, Shield, AlertTriangle, Sparkles, Users, Check, ArrowRight, Repeat, X } from 'lucide-react';
+import SinglePayerCheckout from '../components/SinglePayerCheckout';
+import PreAuthTimer from '../components/PreAuthTimer';
+import RoomClaiming from '../components/RoomClaiming';
+import ComparePackagesTable from '../components/ComparePackagesTable';
+import PeerAccountabilityTracker from '../components/PeerAccountabilityTracker';
+import TripReceiptAccordion from '../components/TripReceiptAccordion';
+import '../index.css';
+
+const PREAUTH_QUORUM_PCT = 100; // booking executes only when 100% quorum is reached
+const PREAUTH_TIMEOUT_SECONDS = 180; // demo timer for prototype
+const LITE_KYC_LIMIT = 10000; // ₹10k threshold per the spec
+
+function RefundBanner() {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 'var(--space-sm)',
+        padding: '12px var(--space-md)',
+        background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.1), rgba(255, 107, 107, 0.08))',
+        border: '1px solid rgba(245, 158, 11, 0.2)',
+        borderRadius: 'var(--radius-lg)',
+        marginBottom: 'var(--space-lg)',
+      }}
+    >
+      <Shield size={14} color="var(--accent-amber)" />
+      <div style={{ flex: 1 }}>
+        <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--accent-amber)', lineHeight: 1.2 }}>
+          Cancellation & Refund Transparency
+        </div>
+        <div style={{ fontSize: 10, color: 'var(--text-secondary)', lineHeight: 1.4 }}>
+          {REFUND_POLICY.full.text} · {REFUND_POLICY.partial.text} · {REFUND_POLICY.none.text}
+        </div>
+      </div>
+      <Repeat size={16} color="var(--text-muted)" />
+    </div>
+  );
+}
+
+function SplitPreAuthCheckout() {
+  const { state, dispatch } = useApp();
+  const currentUser = state.currentUser;
+
+  const itinerary = state.lockedItinerary || DESTINATIONS[0];
+  const members = state.groupMembers || GROUP_MEMBERS;
+
+  // Prototype-only: allow editing "number of people" without mutating the real member list.
+  // Auth/quorum still depends on actual groupMembers, but totals/shares use this override.
+  const [peopleCountOverride, setPeopleCountOverride] = useState(members.length || 1);
+
+  useMemo(() => {
+    // keep override in sync if member list changes
+    setPeopleCountOverride((v) => {
+      const base = members.length || 1;
+      if (Number.isFinite(v) && v > 0) return v;
+      return base;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [members.length]);
+
+  const effectiveClaimsAmount = useMemo(() => {
+    const rooms = itinerary.rooms || [];
+    const claimedRooms = Object.entries(state.roomClaims || {})
+      .filter(([, userId]) => userId)
+      .map(([roomId]) => rooms.find((r) => r.id === roomId))
+      .filter(Boolean);
+
+    const sum = claimedRooms.reduce((acc, r) => acc + r.price, 0);
+    if (sum > 0) return sum;
+
+    const fallbackRoomPrice = rooms[0]?.price || 9000;
+    return fallbackRoomPrice;
+  }, [itinerary, state.roomClaims]);
+
+  const quorumMemberCount = members.length || 1;
+  const paidByPeopleCount = Math.max(1, peopleCountOverride || quorumMemberCount);
+
+  const claimedPerPersonProxy = Math.round((effectiveClaimsAmount / Math.max(1, paidByPeopleCount)) * 100) / 100;
+
+  const needsLiteKyc = claimedPerPersonProxy <= LITE_KYC_LIMIT;
+  const requiredKycTier = needsLiteKyc ? 'lite' : 'full';
+
+  const taxes = Math.round((itinerary.pricePerPerson * paidByPeopleCount) * 0.12);
+  const platformFee = 499;
+  const totalTripAmount = Math.round(itinerary.pricePerPerson * paidByPeopleCount + taxes + platformFee);
+
+  const individualTotal = Math.round(itinerary.pricePerPerson + Math.round((itinerary.pricePerPerson * 0.12) || 0) + Math.round(platformFee / Math.max(1, paidByPeopleCount)));
+
+  const [expired, setExpired] = useState(false);
+  const [leaderOverride, setLeaderOverride] = useState(false);
+
+  const [pgStage, setPgStage] = useState('pre'); // pre | sunkCost | paymentMethods | processing | success
+  const [sunkCostAccepted, setSunkCostAccepted] = useState(false);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState(null);
+
+  const quorumSatisfiedCount = useMemo(() => {
+    const preAuths = state.preAuths || {};
+    return members.filter((m) => preAuths[m.id] === 'authorized').length;
+  }, [members, state.preAuths]);
+
+  const quorumSatisfied = quorumSatisfiedCount === quorumMemberCount;
+  const quorumPct = Math.round((quorumSatisfiedCount / Math.max(1, quorumMemberCount)) * 100);
+
+  const preAuthStatuses = useMemo(() => {
+    const preAuths = state.preAuths || {};
+    return members.reduce((acc, m) => {
+      acc[m.id] = preAuths[m.id] || 'pending';
+      return acc;
+    }, {});
+  }, [members, state.preAuths]);
+
+  const handleExpired = useCallback(() => {
+    setExpired(true);
+  }, []);
+
+  const setMemberAuthorized = useCallback(
+    (userId) => {
+      if (expired) return;
+      dispatch({ type: 'SET_PRE_AUTH', payload: { userId, status: 'authorized' } });
+    },
+    [dispatch, expired]
+  );
+
+  const setMemberDeclined = useCallback(
+    (userId) => {
+      if (expired) return;
+      dispatch({ type: 'SET_PRE_AUTH', payload: { userId, status: 'declined' } });
+    },
+    [dispatch, expired]
+  );
+
+  const tryCompletePayment = useCallback(() => {
+    if (!quorumSatisfied) return;
+    // Phase: show the individual payment authorization interface (hardcoded prototype),
+    // then "process" after user accepts & selects a payment method.
+    setPgStage('sunkCost');
+  }, [quorumSatisfied]);
+
+  const saveTheTrip = useCallback(() => {
+    // In prototype, leader override also brings the user to the same authorization UI.
+    setPgStage('sunkCost');
+  }, []);
+
+  const resetPgFlow = useCallback(() => {
+    setPgStage('pre');
+    setSunkCostAccepted(false);
+    setSelectedPaymentMethod(null);
+  }, []);
+
+  const authorizeMyShare = useCallback(() => {
+    if (!sunkCostAccepted) return;
+    setPgStage('paymentMethods');
+  }, [sunkCostAccepted]);
+
+  const startPayment = useCallback(() => {
+    if (!selectedPaymentMethod) return;
+    setPgStage('processing');
+    setTimeout(() => {
+      dispatch({ type: 'COMPLETE_PAYMENT' });
+      setPgStage('success');
+    }, 2500);
+  }, [dispatch, selectedPaymentMethod]);
+
+  return (
+    <div className="page">
+      <RefundBanner />
+
+      {pgStage !== 'pre' && (
+        <div className="glass-card" style={{ padding: 16, marginBottom: 'var(--space-lg)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: 'var(--radius-md)',
+                background: 'rgba(16,185,129,0.10)',
+                border: '1px solid rgba(16,185,129,0.25)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+              }}
+            >
+              <Shield size={20} color="var(--accent-emerald)" />
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--accent-emerald)' }}>
+                Push notification
+              </div>
+              <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>
+                Your trip to <strong>{itinerary.name.split(' ')[0]}</strong> is ready to lock!
+              </div>
+            </div>
+            <button
+              className="btn btn-ghost"
+              style={{ padding: '8px 10px' }}
+              onClick={resetPgFlow}
+              title="Close"
+            >
+              <X size={18} />
+            </button>
+          </div>
+
+          <div className="divider" style={{ margin: '14px 0' }} />
+
+          {pgStage === 'sunkCost' && (
+            <>
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center' }}>
+                <div>
+                  <div style={{ fontSize: 12, color: 'var(--text-secondary)', fontWeight: 600 }}>
+                    Your exact total
+                  </div>
+                  <div style={{ fontSize: 26, fontWeight: 900, fontFamily: 'var(--font-heading)', color: 'var(--accent-emerald)', marginTop: 4 }}>
+                    ₹{individualTotal.toLocaleString('en-IN')}
+                  </div>
+                  <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 4 }}>
+                    (demo individual share)
+                  </div>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ fontSize: 12, color: 'var(--text-secondary)', fontWeight: 600 }}>
+                    Included for you
+                  </div>
+                  <div style={{ fontSize: 12, color: 'var(--text-primary)', marginTop: 4 }}>
+                    Flights + Villa + Fees (prototype)
+                  </div>
+                </div>
+              </div>
+
+              <div className="divider" style={{ margin: '14px 0' }} />
+
+              <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={sunkCostAccepted}
+                  onChange={(e) => setSunkCostAccepted(e.target.checked)}
+                  style={{ marginTop: 4 }}
+                />
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 900, color: 'var(--text-primary)' }}>
+                    Sunk Cost Agreement (Mandatory)
+                  </div>
+                  <div style={{ fontSize: 10, color: 'var(--text-secondary)', marginTop: 6, lineHeight: 1.5 }}>
+                    Flights are non-refundable. Villa is refundable until Aug 10.
+                    <br />
+                    Cancelling after that may trigger partial penalties (prototype hardcode).
+                  </div>
+                </div>
+              </label>
+
+              <div style={{ marginTop: 16 }}>
+                <button
+                  className="btn btn-primary btn-full btn-lg"
+                  disabled={!sunkCostAccepted}
+                  style={{
+                    opacity: sunkCostAccepted ? 1 : 0.6,
+                    pointerEvents: sunkCostAccepted ? 'auto' : 'none',
+                  }}
+                  onClick={authorizeMyShare}
+                >
+                  Authorize My Share
+                  <ArrowRight size={18} />
+                </button>
+              </div>
+            </>
+          )}
+
+          {pgStage === 'paymentMethods' && (
+            <>
+              <div style={{ fontSize: 14, fontWeight: 900, color: 'var(--text-primary)' }}>
+                Choose payment method
+              </div>
+              <div style={{ fontSize: 10, color: 'var(--text-secondary)', marginTop: 4 }}>
+                Payment interface opens after you approve the authorization (prototype).
+              </div>
+
+              <div style={{ marginTop: 14, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                {PAYMENT_METHODS.map((m) => (
+                  <button
+                    key={m.id}
+                    className="glass-card"
+                    style={{
+                      padding: 12,
+                      cursor: 'pointer',
+                      border: selectedPaymentMethod === m.id ? '2px solid var(--accent-primary)' : '1px solid var(--glass-border)',
+                      background: selectedPaymentMethod === m.id ? 'rgba(124,58,237,0.12)' : 'var(--glass-bg)',
+                      textAlign: 'center',
+                    }}
+                    onClick={() => setSelectedPaymentMethod(m.id)}
+                  >
+                    <div style={{ fontSize: 22 }}>{m.icon}</div>
+                    <div style={{ fontSize: 12, fontWeight: 800, marginTop: 6 }}>
+                      {m.name}
+                    </div>
+                  </button>
+                ))}
+              </div>
+
+              <div style={{ marginTop: 16 }}>
+                <button
+                  className="btn btn-emerald btn-full btn-lg"
+                  disabled={!selectedPaymentMethod}
+                  style={{
+                    opacity: selectedPaymentMethod ? 1 : 0.6,
+                    pointerEvents: selectedPaymentMethod ? 'auto' : 'none',
+                  }}
+                  onClick={startPayment}
+                >
+                  Open PG & Authorize
+                  <ArrowRight size={18} />
+                </button>
+              </div>
+            </>
+          )}
+
+          {pgStage === 'processing' && (
+            <div style={{ padding: 10, textAlign: 'center' }}>
+              <div style={{ fontSize: 14, fontWeight: 900, color: 'var(--text-primary)' }}>
+                Authorizing via Payment Gateway…
+              </div>
+              <div style={{ fontSize: 10, color: 'var(--text-secondary)', marginTop: 6 }}>
+                capture_method: manual (prototype hold)
+              </div>
+            </div>
+          )}
+
+          {pgStage === 'success' && (
+            <div style={{ padding: 10, textAlign: 'center' }}>
+              <div style={{ fontSize: 18, fontWeight: 900, color: 'var(--accent-emerald)' }}>
+                Trip Booked! 🎉
+              </div>
+              <div style={{ fontSize: 10, color: 'var(--text-secondary)', marginTop: 6 }}>
+                Confirmed itinerary: {itinerary.name} (prototype)
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      <div className="glass-card" style={{ padding: '16px', marginBottom: 'var(--space-lg)' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+          <div
+            style={{
+              width: 44,
+              height: 44,
+              borderRadius: 'var(--radius-md)',
+              background: 'rgba(124, 58, 237, 0.14)',
+              border: '1px solid rgba(124,58,237,0.25)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+            }}
+          >
+            <Users size={20} color="var(--accent-secondary)" />
+          </div>
+          <div style={{ flex: 1 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+              <h1 style={{ margin: 0, fontSize: 'var(--text-2xl)' }}>
+                Split Cost — Pre-Auth Route
+              </h1>
+              <span className="badge badge-primary">Flow A</span>
+            </div>
+
+            <p className="page-subtitle" style={{ marginTop: 6 }}>
+              Booking will execute only after 100% quorum of member authorizations.
+            </p>
+
+            <div style={{ marginTop: 10, display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+              <span
+                className="badge"
+                style={{
+                  background: requiredKycTier === 'full' ? 'rgba(124,58,237,0.12)' : 'rgba(16,185,129,0.10)',
+                  border: '1px solid rgba(124, 58, 237, 0.2)',
+                }}
+              >
+                KYC requirement: {KYC_TIERS[requiredKycTier].name} (demo rule)
+              </span>
+
+              <span className="badge badge-emerald">
+                Quorum: {quorumSatisfiedCount}/{quorumMemberCount} ({quorumPct}%)
+              </span>
+
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  padding: '6px 10px',
+                  borderRadius: 'var(--radius-full)',
+                  border: '1px solid var(--glass-border)',
+                  background: 'var(--glass-bg)',
+                }}
+              >
+                <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-secondary)' }}>
+                  People
+                </span>
+                <button
+                  className="btn btn-ghost"
+                  style={{ width: 30, height: 30, padding: 0 }}
+                  onClick={() => setPeopleCountOverride((v) => Math.max(1, v - 1))}
+                >
+                  -
+                </button>
+                <span style={{ minWidth: 28, textAlign: 'center', fontWeight: 900, color: 'var(--text-primary)' }}>
+                  {paidByPeopleCount}
+                </span>
+                <button
+                  className="btn btn-ghost"
+                  style={{ width: 30, height: 30, padding: 0 }}
+                  onClick={() => setPeopleCountOverride((v) => v + 1)}
+                >
+                  +
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <AnimatePresence>
+        {expired && !quorumSatisfied && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="glass-card"
+            style={{ padding: 16, marginBottom: 'var(--space-lg)', border: '1px solid rgba(255,107,107,0.25)' }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <AlertTriangle size={18} color="var(--accent-coral)" />
+              <div>
+                <div style={{ fontWeight: 800, color: 'var(--accent-coral)' }}>
+                  Authorization window expired
+                </div>
+                <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>
+                  Use “Save the Trip” to cover remaining balance and keep booking from collapsing.
+                </div>
+              </div>
+            </div>
+
+            <div style={{ marginTop: 12, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+              <motion.button
+                className="btn btn-primary"
+                onClick={() => saveTheTrip()}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                style={{ flex: '1 1 220px' }}
+              >
+                Save the Trip (Cover Remaining)
+                <ArrowRight size={18} />
+              </motion.button>
+              <motion.button
+                className="btn btn-ghost"
+                onClick={() => {
+                  setExpired(false);
+                  dispatch({
+                    type: 'SET_PRE_AUTH',
+                    payload: { userId: currentUser.id, status: 'authorized' },
+                  });
+                }}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                style={{ flex: '1 1 180px' }}
+              >
+                Retry & Authorize
+              </motion.button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Claims + Amount */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.35 }}
+        style={{ padding: 16, marginBottom: 'var(--space-lg)' }}
+      >
+        <h3 style={{ margin: 0, fontSize: 'var(--text-lg)', fontFamily: 'var(--font-heading)' }}>
+          Segment Claiming (Room / Sub-expense)
+        </h3>
+        <p className="page-subtitle" style={{ marginTop: 6 }}>
+          Members can claim room segments before the final split amount is computed.
+        </p>
+        <div className="divider" style={{ margin: '14px 0' }} />
+        <RoomClaiming destination={itinerary} />
+        <div className="divider" style={{ margin: '14px 0' }} />
+
+        <PeerAccountabilityTracker />
+        <ComparePackagesTable />
+
+        <TripReceiptAccordion
+          destination={itinerary}
+          roomClaims={state.roomClaims}
+          peopleCount={paidByPeopleCount}
+        />
+      </motion.div>
+
+      {/* Authorizations */}
+      <div className="glass-card" style={{ padding: 16, marginBottom: 'var(--space-lg)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 14, alignItems: 'center' }}>
+          <div>
+            <h3 style={{ margin: 0, fontSize: 'var(--text-lg)', fontFamily: 'var(--font-heading)' }}>
+              Member Pre-Authorization Mandates
+            </h3>
+            <p className="page-subtitle" style={{ marginTop: 6 }}>
+              Capture UPI / mandate authorization from all required payers.
+            </p>
+          </div>
+          <span className="badge badge-primary">UPI Pre-Auth (Prototype)</span>
+        </div>
+
+        <div style={{ marginTop: 16 }}>
+          <PreAuthTimer seconds={PREAUTH_TIMEOUT_SECONDS} onExpired={handleExpired} />
+        </div>
+
+        <div className="divider" style={{ margin: '16px 0' }} />
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {members.map((m) => {
+            const status = preAuthStatuses[m.id];
+            const isYou = m.id === currentUser.id;
+            const canToggle = !expired && (status !== 'authorized' || isYou);
+
+            return (
+              <div
+                key={m.id}
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  gap: 12,
+                  padding: '10px 12px',
+                  borderRadius: 'var(--radius-lg)',
+                  border: '1px solid var(--glass-border)',
+                  background: isYou ? 'rgba(124,58,237,0.10)' : 'var(--glass-bg)',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div
+                    className="avatar avatar-sm"
+                    style={{ background: m.color, fontSize: 9, border: '2px solid var(--bg-primary)', width: 34, height: 34 }}
+                  >
+                    {m.avatar}
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 800 }}>
+                      {m.name}
+                      {isYou && (
+                        <span style={{ marginLeft: 8, fontSize: 10, color: 'var(--accent-secondary)', fontWeight: 700 }}>
+                          (You)
+                        </span>
+                      )}
+                    </div>
+                    <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
+                      Status: {status === 'authorized' ? 'Authorized' : status === 'declined' ? 'Declined' : 'Pending'}
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+                  {status === 'authorized' ? (
+                    <span className="badge badge-emerald" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <Check size={12} /> Done
+                    </span>
+                  ) : (
+                    <>
+                      <motion.button
+                        className="btn btn-ghost"
+                        style={{ padding: '10px 12px' }}
+                        disabled={!canToggle}
+                        onClick={() => setMemberDeclined(m.id)}
+                        whileTap={{ scale: 0.98 }}
+                      >
+                        Decline
+                      </motion.button>
+                      <motion.button
+                        className="btn btn-primary"
+                        style={{ padding: '10px 12px' }}
+                        disabled={!canToggle}
+                        onClick={() => setMemberAuthorized(m.id)}
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                      >
+                        Authorize
+                      </motion.button>
+                    </>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        <div style={{ marginTop: 16, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+          <motion.button
+            className="btn btn-emerald btn-lg btn-full"
+            disabled={!quorumSatisfied || expired}
+            style={{
+              opacity: !quorumSatisfied || expired ? 0.6 : 1,
+              pointerEvents: !quorumSatisfied || expired ? 'none' : 'auto',
+            }}
+            onClick={tryCompletePayment}
+            whileHover={{ scale: 1.01 }}
+            whileTap={{ scale: 0.99 }}
+          >
+            Execute Booking (Quorum Reached)
+            <ArrowRight size={18} />
+          </motion.button>
+
+          <motion.button
+            className="btn btn-ghost btn-full"
+            onClick={() => setLeaderOverride((v) => !v)}
+            whileHover={{ scale: 1.01 }}
+            whileTap={{ scale: 0.99 }}
+            style={{ flex: '1 1 220px' }}
+          >
+            {leaderOverride ? 'Leader override: ON' : 'Leader override: OFF'}
+          </motion.button>
+        </div>
+
+        {leaderOverride && (
+          <div style={{ marginTop: 14, fontSize: 12, color: 'var(--text-secondary)' }}>
+            Prototype mode: leader override enables “Save the Trip” even if quorum isn’t 100% yet.
+          </div>
+        )}
+      </div>
+
+      {/* Save the Trip CTA (always visible; gated by leader override in prototype) */}
+      <div className="glass-card" style={{ padding: 16, marginTop: 'var(--space-lg)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <AlertTriangle size={18} color="var(--accent-amber)" />
+          <div style={{ flex: 1 }}>
+            <div style={{ fontWeight: 900, color: 'var(--accent-amber)' }}>Prevent booking collapse</div>
+            <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>
+              {quorumSatisfied
+                ? 'Quorum is satisfied — you can still proceed with booking.'
+                : 'If any member fails to authorize, leader override lets one user cover the remaining balance.'}
+            </div>
+          </div>
+          <span className="badge badge-amber" style={{ fontSize: 11, padding: '6px 10px', opacity: 0.95 }}>
+            Leader override: {leaderOverride ? 'ON' : 'OFF'}
+          </span>
+        </div>
+
+        <div style={{ marginTop: 12 }}>
+          <motion.button
+            className="btn btn-primary btn-full btn-lg"
+            onClick={saveTheTrip}
+            disabled={!leaderOverride}
+            style={{
+              opacity: leaderOverride ? 1 : 0.6,
+              pointerEvents: leaderOverride ? 'auto' : 'none',
+            }}
+            whileHover={{ scale: 1.01 }}
+            whileTap={{ scale: 0.99 }}
+          >
+            Save the Trip (Leader Cover)
+            <ArrowRight size={18} />
+          </motion.button>
+
+          {!leaderOverride && (
+            <div style={{ marginTop: 8, fontSize: 11, color: 'var(--text-muted)' }}>
+              Turn on “Leader override” to activate Save the Trip in this prototype.
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function Checkout() {
+  const { state } = useApp();
+  const itinerary = state.lockedItinerary || DESTINATIONS[0];
+  const memberCount = state.groupMembers?.length || 6;
+
+  const estimatedTotal = Math.round(itinerary.pricePerPerson * memberCount * 1.12 + 499); // include GST-ish + platform fee
+
+  // Tiered KYC / progressive friction model (prototype heuristic):
+  // - Lite KYC for small transactions (under ₹10k) => treat as single payer route
+  // - Full KYC trigger for large, multi-family group pre-auths above regulatory thresholds => Flow A
+  const perPerson = itinerary.pricePerPerson;
+  const shouldUseSplitPreAuth = perPerson > LITE_KYC_LIMIT && memberCount >= 4;
+
+  return (
+    <div className="page">
+      <div className="page-header" style={{ marginBottom: 'var(--space-lg)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <Sparkles size={22} color="var(--accent-secondary)" />
+          <h1 className="page-title text-gradient" style={{ fontSize: 'var(--text-2xl)' }}>
+            Checkout
+          </h1>
+        </div>
+        <p className="page-subtitle">
+          {itinerary.name} • {memberCount} members
+        </p>
+      </div>
+
+      <AnimatePresence mode="wait">
+        {shouldUseSplitPreAuth ? (
+          <motion.div key="flowA" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
+            <SplitPreAuthCheckout />
+          </motion.div>
+        ) : (
+          <motion.div key="flowB" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
+            {/* Flow B should still show refund banner transparency */}
+            <RefundBanner />
+            <SinglePayerCheckout />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Tiny footer note */}
+      <div style={{ marginTop: 18, textAlign: 'center', color: 'var(--text-muted)', fontSize: 11 }}>
+        Prototype only — integrations (UPI SDK / KYC API / booking aggregator) are mocked.
+      </div>
+    </div>
+  );
+}
