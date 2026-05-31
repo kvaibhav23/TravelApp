@@ -287,190 +287,224 @@ function SplitPreAuthCheckout() {
       </AnimatePresence>
 
       {paymentModalOpen && pgStage !== 'pre' && (
-        <div
-          className="glass-card"
-          style={{
-            position: 'fixed',
-            inset: 0,
-            zIndex: 80,
-            margin: 'auto',
-            maxWidth: 480,
-            height: 'fit-content',
-            top: 40,
-            bottom: 40,
-            overflow: 'auto',
-            padding: 16,
-            boxShadow: '0 18px 60px rgba(0,0,0,0.6)',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div
-              style={{
-                width: 44,
-                height: 44,
-                borderRadius: 'var(--radius-md)',
-                background: 'rgba(16,185,129,0.10)',
-                border: '1px solid rgba(16,185,129,0.25)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
-              }}
-            >
-              <Shield size={20} color="var(--accent-emerald)" />
+        <>
+          {/* Opaque backdrop for payment modal */}
+          <div
+            style={{
+              position: 'fixed',
+              inset: 0,
+              zIndex: 79,
+              background: 'rgba(10, 10, 26, 0.78)',
+              backdropFilter: 'blur(10px)',
+              WebkitBackdropFilter: 'blur(10px)',
+            }}
+            onClick={resetPgFlow}
+          />
+          <div
+            className="glass-card"
+            style={{
+              position: 'fixed',
+              inset: 0,
+              zIndex: 80,
+              margin: 'auto',
+              maxWidth: 480,
+              height: 'fit-content',
+              top: 40,
+              bottom: 40,
+              overflow: 'auto',
+              padding: 16,
+              boxShadow: '0 18px 60px rgba(0,0,0,0.6)',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div
+                style={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: 'var(--radius-md)',
+                  background: 'rgba(16,185,129,0.10)',
+                  border: '1px solid rgba(16,185,129,0.25)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                }}
+              >
+                <Shield size={20} color="var(--accent-emerald)" />
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--accent-emerald)' }}>
+                  Push notification
+                </div>
+                <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>
+                  Your trip to <strong>{itinerary.name.split(' ')[0]}</strong> is ready to lock!
+                </div>
+              </div>
+              <button
+                className="btn btn-ghost"
+                style={{ padding: '8px 10px' }}
+                onClick={resetPgFlow}
+                title="Close"
+              >
+                <X size={18} />
+              </button>
             </div>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--accent-emerald)' }}>
-                Push notification
-              </div>
-              <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>
-                Your trip to <strong>{itinerary.name.split(' ')[0]}</strong> is ready to lock!
-              </div>
-            </div>
-            <button
-              className="btn btn-ghost"
-              style={{ padding: '8px 10px' }}
-              onClick={resetPgFlow}
-              title="Close"
-            >
-              <X size={18} />
-            </button>
-          </div>
 
-          <div className="divider" style={{ margin: '14px 0' }} />
+            <div className="divider" style={{ margin: '14px 0' }} />
 
-          {pgStage === 'sunkCost' && (
-            <>
-              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center' }}>
-                <div>
-                  <div style={{ fontSize: 12, color: 'var(--text-secondary)', fontWeight: 600 }}>
-                    Your exact total
-                  </div>
-                  <div style={{ fontSize: 26, fontWeight: 900, fontFamily: 'var(--font-heading)', color: 'var(--accent-emerald)', marginTop: 4 }}>
-                    ₹{individualTotal.toLocaleString('en-IN')}
-                  </div>
-                  <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 4 }}>
-                    (demo individual share)
-                  </div>
-                </div>
-                <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: 12, color: 'var(--text-secondary)', fontWeight: 600 }}>
-                    Included for you
-                  </div>
-                  <div style={{ fontSize: 12, color: 'var(--text-primary)', marginTop: 4 }}>
-                    Flights + Villa + Fees (prototype)
-                  </div>
-                </div>
-              </div>
-
-              <div className="divider" style={{ margin: '14px 0' }} />
-
-              <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, cursor: 'pointer' }}>
-                <input
-                  type="checkbox"
-                  checked={sunkCostAccepted}
-                  onChange={(e) => setSunkCostAccepted(e.target.checked)}
-                  style={{ marginTop: 4 }}
-                />
-                <div>
-                  <div style={{ fontSize: 12, fontWeight: 900, color: 'var(--text-primary)' }}>
-                    Sunk Cost Agreement (Mandatory)
-                  </div>
-                  <div style={{ fontSize: 10, color: 'var(--text-secondary)', marginTop: 6, lineHeight: 1.5 }}>
-                    Flights are non-refundable. Villa is refundable until Aug 10.
-                    <br />
-                    Cancelling after that may trigger partial penalties (prototype hardcode).
-                  </div>
-                </div>
-              </label>
-
-              <div style={{ marginTop: 16 }}>
-                <button
-                  className="btn btn-primary btn-full btn-lg"
-                  disabled={!sunkCostAccepted}
-                  style={{
-                    opacity: sunkCostAccepted ? 1 : 0.6,
-                    pointerEvents: sunkCostAccepted ? 'auto' : 'none',
-                  }}
-                  onClick={authorizeMyShare}
-                >
-                  Authorize My Share
-                  <ArrowRight size={18} />
-                </button>
-              </div>
-            </>
-          )}
-
-          {pgStage === 'paymentMethods' && (
-            <>
-              <div style={{ fontSize: 14, fontWeight: 900, color: 'var(--text-primary)' }}>
-                Choose payment method
-              </div>
-              <div style={{ fontSize: 10, color: 'var(--text-secondary)', marginTop: 4 }}>
-                Payment interface opens after you approve the authorization (prototype).
-              </div>
-
-              <div style={{ marginTop: 14, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                {PAYMENT_METHODS.map((m) => (
-                  <button
-                    key={m.id}
-                    className="glass-card"
-                    style={{
-                      padding: 12,
-                      cursor: 'pointer',
-                      border: selectedPaymentMethod === m.id ? '2px solid var(--accent-primary)' : '1px solid var(--glass-border)',
-                      background: selectedPaymentMethod === m.id ? 'rgba(124,58,237,0.12)' : 'var(--glass-bg)',
-                      textAlign: 'center',
-                    }}
-                    onClick={() => setSelectedPaymentMethod(m.id)}
-                  >
-                    <div style={{ fontSize: 22 }}>{m.icon}</div>
-                    <div style={{ fontSize: 12, fontWeight: 800, marginTop: 6 }}>
-                      {m.name}
+            {pgStage === 'sunkCost' && (
+              <>
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center' }}>
+                  <div>
+                    <div style={{ fontSize: 12, color: 'var(--text-secondary)', fontWeight: 600 }}>
+                      Your exact total
                     </div>
+                    <div style={{ fontSize: 26, fontWeight: 900, fontFamily: 'var(--font-heading)', color: 'var(--accent-emerald)', marginTop: 4 }}>
+                      ₹{individualTotal.toLocaleString('en-IN')}
+                    </div>
+                    <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 4 }}>
+                      (demo individual share)
+                    </div>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontSize: 12, color: 'var(--text-secondary)', fontWeight: 600 }}>
+                      Included for you
+                    </div>
+                    <div style={{ fontSize: 12, color: 'var(--text-primary)', marginTop: 4 }}>
+                      Flights + Villa + Fees (prototype)
+                    </div>
+                  </div>
+                </div>
+
+                <div className="divider" style={{ margin: '14px 0' }} />
+
+                <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={sunkCostAccepted}
+                    onChange={(e) => setSunkCostAccepted(e.target.checked)}
+                    style={{ marginTop: 4 }}
+                  />
+                  <div>
+                    <div style={{ fontSize: 12, fontWeight: 900, color: 'var(--text-primary)' }}>
+                      Sunk Cost Agreement (Mandatory)
+                    </div>
+                    <div style={{ fontSize: 10, color: 'var(--text-secondary)', marginTop: 6, lineHeight: 1.5 }}>
+                      Flights are non-refundable. Villa is refundable until Aug 10.
+                      <br />
+                      Cancelling after that may trigger partial penalties (prototype hardcode).
+                    </div>
+                  </div>
+                </label>
+
+                <div style={{ marginTop: 16 }}>
+                  <button
+                    className="btn btn-primary btn-full btn-lg"
+                    disabled={!sunkCostAccepted}
+                    style={{
+                      opacity: sunkCostAccepted ? 1 : 0.6,
+                      pointerEvents: sunkCostAccepted ? 'auto' : 'none',
+                    }}
+                    onClick={authorizeMyShare}
+                  >
+                    Authorize My Share
+                    <ArrowRight size={18} />
                   </button>
-                ))}
-              </div>
+                </div>
+              </>
+            )}
 
-              <div style={{ marginTop: 16 }}>
-                <button
-                  className="btn btn-emerald btn-full btn-lg"
-                  disabled={!selectedPaymentMethod}
-                  style={{
-                    opacity: selectedPaymentMethod ? 1 : 0.6,
-                    pointerEvents: selectedPaymentMethod ? 'auto' : 'none',
-                  }}
-                  onClick={startPayment}
-                >
-                  Open PG & Authorize
-                  <ArrowRight size={18} />
-                </button>
-              </div>
-            </>
-          )}
+            {pgStage === 'paymentMethods' && (
+              <>
+                <div style={{ fontSize: 14, fontWeight: 900, color: 'var(--text-primary)' }}>
+                  Choose payment method
+                </div>
+                <div style={{ fontSize: 10, color: 'var(--text-secondary)', marginTop: 4 }}>
+                  Payment interface opens after you approve the authorization (prototype).
+                </div>
 
-          {pgStage === 'processing' && (
-            <div style={{ padding: 10, textAlign: 'center' }}>
-              <div style={{ fontSize: 14, fontWeight: 900, color: 'var(--text-primary)' }}>
-                Authorizing via Payment Gateway…
-              </div>
-              <div style={{ fontSize: 10, color: 'var(--text-secondary)', marginTop: 6 }}>
-                capture_method: manual (prototype hold)
-              </div>
-            </div>
-          )}
+                <div style={{ marginTop: 14, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                  {PAYMENT_METHODS.map((m) => (
+                    <button
+                      key={m.id}
+                      className="glass-card"
+                      style={{
+                        padding: 12,
+                        cursor: 'pointer',
+                        border:
+                          selectedPaymentMethod === m.id
+                            ? '2px solid var(--accent-primary)'
+                            : '1px solid var(--glass-border)',
+                        background:
+                          selectedPaymentMethod === m.id ? 'rgba(124,58,237,0.12)' : 'var(--glass-bg)',
+                        textAlign: 'center',
+                      }}
+                      onClick={() => setSelectedPaymentMethod(m.id)}
+                    >
+                      <div
+                        style={{
+                          width: 44,
+                          height: 44,
+                          margin: '0 auto',
+                          borderRadius: 'var(--radius-md)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          background: 'rgba(255,255,255,0.03)',
+                          border: `1px solid rgba(255,255,255,0.08)`,
+                        }}
+                      >
+                        <span style={{ fontSize: 20, lineHeight: 1 }}>{m.icon}</span>
+                      </div>
 
-          {pgStage === 'success' && (
-            <div style={{ padding: 10, textAlign: 'center' }}>
-              <div style={{ fontSize: 18, fontWeight: 900, color: 'var(--accent-emerald)' }}>
-                Trip Booked! 🎉
+                      <div style={{ fontSize: 12, fontWeight: 900, marginTop: 8 }}>
+                        {m.name}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+
+                <div style={{ marginTop: 16 }}>
+                  <button
+                    className="btn btn-emerald btn-full btn-lg"
+                    disabled={!selectedPaymentMethod}
+                    style={{
+                      opacity: selectedPaymentMethod ? 1 : 0.6,
+                      pointerEvents: selectedPaymentMethod ? 'auto' : 'none',
+                    }}
+                    onClick={startPayment}
+                  >
+                    Open PG & Authorize
+                    <ArrowRight size={18} />
+                  </button>
+                </div>
+              </>
+            )}
+
+            {pgStage === 'processing' && (
+              <div style={{ padding: 10, textAlign: 'center' }}>
+                <div style={{ fontSize: 14, fontWeight: 900, color: 'var(--text-primary)' }}>
+                  Authorizing via Payment Gateway…
+                </div>
+                <div style={{ fontSize: 10, color: 'var(--text-secondary)', marginTop: 6 }}>
+                  capture_method: manual (prototype hold)
+                </div>
               </div>
-              <div style={{ fontSize: 10, color: 'var(--text-secondary)', marginTop: 6 }}>
-                Confirmed itinerary: {itinerary.name} (prototype)
+            )}
+
+            {pgStage === 'success' && (
+              <div style={{ padding: 10, textAlign: 'center' }}>
+                <div style={{ fontSize: 18, fontWeight: 900, color: 'var(--accent-emerald)' }}>
+                  Trip Booked! 🎉
+                </div>
+                <div style={{ fontSize: 10, color: 'var(--text-secondary)', marginTop: 6 }}>
+                  Confirmed itinerary: {itinerary.name} (prototype)
+                </div>
               </div>
-            </div>
-          )}
-        </div>
+            )}
+          </div>
+        </>
       )}
 
       <div className="glass-card" style={{ padding: '16px', marginBottom: 'var(--space-lg)' }}>
