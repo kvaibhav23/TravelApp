@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Calendar, Sparkles, ArrowRight, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { LONG_WEEKENDS } from '../data/mockTravelData';
+import { LONG_WEEKENDS, DESTINATIONS } from '../data/mockTravelData';
 import '../index.css';
 
 export default function LongWeekendDetector() {
@@ -13,6 +13,11 @@ export default function LongWeekendDetector() {
     // Return the first upcoming long weekend (mock — always show the first one)
     return LONG_WEEKENDS[0];
   }, []);
+
+  const adImage = useMemo(() => {
+    const match = DESTINATIONS.find((d) => d.name === nextWeekend?.suggestion);
+    return match?.image;
+  }, [nextWeekend]);
 
   if (!nextWeekend || dismissed) return null;
 
@@ -34,6 +39,20 @@ export default function LongWeekendDetector() {
             marginBottom: 'var(--space-md)',
           }}
         >
+          {/* Image background (matches suggested destination) */}
+          {adImage && (
+            <div
+              style={{
+                position: 'absolute',
+                inset: 0,
+                backgroundImage: `url(${adImage})`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                opacity: 0.18,
+                pointerEvents: 'none',
+              }}
+            />
+          )}
           {/* Background sparkle decoration */}
           <div style={{
             position: 'absolute',

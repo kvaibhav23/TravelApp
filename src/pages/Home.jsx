@@ -18,6 +18,7 @@ import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import LongWeekendDetector from '../components/LongWeekendDetector';
 import MomentumAgent from '../components/MomentumAgent';
+import { DESTINATIONS } from '../data/mockTravelData';
 import '../index.css';
 
 /* ───── Animation Variants ───── */
@@ -165,12 +166,14 @@ function MiniHealthRing({ percent = 20 }) {
 /* ═══════════════════════════════════════════
    HOME PAGE COMPONENT
    ═══════════════════════════════════════════ */
-function PackageAdCard({ ad, index }) {
+function PackageAdCard({ ad, index, navigateTo }) {
+  const img = ad.image || ad.destinationImage;
+
   return (
     <motion.div
       className="glass-card"
       style={{
-        padding: '14px 14px',
+        padding: '12px 12px',
         minWidth: 300,
         maxWidth: 340,
         scrollSnapAlign: 'start',
@@ -182,52 +185,81 @@ function PackageAdCard({ ad, index }) {
       transition={{ duration: 0.35, delay: index * 0.04 }}
       whileTap={{ scale: 0.99 }}
     >
+      {/* Image (always visible while swiping horizontally) */}
+      <div
+        style={{
+          width: '100%',
+          height: 105,
+          borderRadius: 12,
+          overflow: 'hidden',
+          border: '1px solid rgba(255,255,255,0.06)',
+          background: 'rgba(255,255,255,0.02)',
+          marginBottom: 10,
+          position: 'relative',
+        }}
+      >
+        {img ? (
+          <img
+            src={img}
+            alt={ad.title}
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              objectPosition: 'center',
+              display: 'block',
+            }}
+          />
+        ) : (
+          <div
+            style={{
+              width: '100%',
+              height: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'var(--text-muted)',
+              fontSize: 12,
+            }}
+          >
+            Image
+          </div>
+        )}
+
+        <div style={{ position: 'absolute', left: 10, top: 10 }}>
+          <span
+            className="badge badge-amber"
+            style={{
+              fontSize: 10,
+              padding: '6px 10px',
+              background: 'rgba(255,138,0,0.14)',
+              border: '1px solid rgba(255,138,0,0.22)',
+              display: 'inline-flex',
+              gap: 6,
+              alignItems: 'center',
+            }}
+          >
+            <TicketPercent size={12} /> Deal
+          </span>
+        </div>
+      </div>
+
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
         <div style={{ minWidth: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-            <span
-              className="badge badge-amber"
-              style={{
-                fontSize: 10,
-                padding: '6px 10px',
-                background: 'rgba(255,138,0,0.14)',
-                border: '1px solid rgba(255,138,0,0.22)',
-              }}
-            >
-              <TicketPercent size={12} /> Deal
-            </span>
-            <span style={{ fontSize: 11, color: 'var(--text-secondary)', fontWeight: 700 }}>
-              {ad.offerTag}
-            </span>
+          <div style={{ fontSize: 11, color: 'var(--text-secondary)', fontWeight: 800, marginBottom: 4 }}>
+            {ad.offerTag}
           </div>
 
-          <div style={{ fontSize: 14, fontWeight: 900, fontFamily: 'var(--font-heading)', marginBottom: 4 }}>
+          <div style={{ fontSize: 14, fontWeight: 900, fontFamily: 'var(--font-heading)', marginBottom: 3 }}>
             {ad.title}
           </div>
 
-          <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.4 }}>
+          <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.35 }}>
             {ad.subtitle}
           </div>
         </div>
 
-        <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8 }}>
-          <div
-            style={{
-              width: 44,
-              height: 44,
-              borderRadius: 'var(--radius-md)',
-              background: 'var(--gradient-primary)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              boxShadow: '0 0 22px rgba(255,77,77,0.25)',
-              color: 'white',
-            }}
-            aria-hidden="true"
-          >
-            <Zap size={18} />
-          </div>
-
+        <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
           <div style={{ textAlign: 'right' }}>
             <div style={{ fontSize: 10, color: 'var(--text-muted)', fontWeight: 700, textDecoration: 'line-through' }}>
               ₹{ad.comparisonPrice.toLocaleString('en-IN')}
@@ -242,17 +274,12 @@ function PackageAdCard({ ad, index }) {
         </div>
       </div>
 
-      <div className="divider" style={{ margin: '12px 0 10px' }} />
-
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center', color: 'var(--text-secondary)', fontSize: 11, fontWeight: 700 }}>
-          <Tags size={14} />
-          {ad.smallMeta}
-        </div>
+      {/* Reduced spacing: removed “Book in 2 mins” meta row to prevent extra bottom space */}
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 10 }}>
         <motion.button
           className="btn btn-ghost"
           style={{ padding: '8px 10px' }}
-          onClick={() => ad.route ? navigate(ad.route) : undefined}
+          onClick={() => ad.route ? navigateTo(ad.route) : undefined}
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
         >
@@ -272,41 +299,46 @@ function Home() {
 
   const { currentUser, activeTrip, groupMembers } = state;
 
-  const PACKAGE_ADS = useMemo(() => ([
-    {
-      id: 'p1',
-      title: 'Goa Beach Escape',
-      subtitle: 'Flights + beachfront villa bundle (3N/4D) • limited seats',
-      offerTag: 'HOT DEAL',
-      comparisonPrice: 28999,
-      dealPrice: 21999,
-      savingsPct: 24,
-      smallMeta: 'Book in 2 mins',
-      route: '/vote',
-    },
-    {
-      id: 'p2',
-      title: 'Kerala Backwaters Family Plan',
-      subtitle: 'Houseboat + stay • kid-friendly rooms + flexible timings',
-      offerTag: 'FAMILY PICK',
-      comparisonPrice: 34999,
-      dealPrice: 26999,
-      savingsPct: 23,
-      smallMeta: 'Best for groups',
-      route: '/ai-planner',
-    },
-    {
-      id: 'p3',
-      title: 'Dubai Long Weekend Spark',
-      subtitle: 'Direct flights + hotel suite • optimized for 4 days',
-      offerTag: 'LONG WEEKEND',
-      comparisonPrice: 59999,
-      dealPrice: 45999,
-      savingsPct: 23,
-      smallMeta: 'Fastest checkout',
-      route: '/vote',
-    },
-  ]), [navigate]);
+  const PACKAGE_ADS = useMemo(() => {
+    const picks = DESTINATIONS.slice(0, 3); // MVP: guaranteed images
+    const [goa, kerala, rajasthan] = picks;
+
+    return [
+      {
+        id: 'p1',
+        image: goa?.image,
+        title: 'Goa Beach Escape',
+        subtitle: 'Flights + beachfront villa bundle (3N/4D) • limited seats',
+        offerTag: 'HOT DEAL',
+        comparisonPrice: 28999,
+        dealPrice: 21999,
+        savingsPct: 24,
+        route: '/vote',
+      },
+      {
+        id: 'p2',
+        image: kerala?.image,
+        title: kerala?.name || 'Kerala Backwater Bliss',
+        subtitle: 'Houseboat + stay • kid-friendly rooms + flexible timings',
+        offerTag: 'FAMILY PICK',
+        comparisonPrice: 34999,
+        dealPrice: 26999,
+        savingsPct: 23,
+        route: '/ai-planner',
+      },
+      {
+        id: 'p3',
+        image: rajasthan?.image,
+        title: rajasthan?.name || 'Royal Rajasthan Heritage',
+        subtitle: 'Direct flights + hotel suite • optimized for 4 days',
+        offerTag: 'LONG WEEKEND',
+        comparisonPrice: 59999,
+        dealPrice: 45999,
+        savingsPct: 23,
+        route: '/vote',
+      },
+    ];
+  }, []);
 
   return (
     <div className="page">
@@ -402,7 +434,7 @@ function Home() {
             }}
           >
             {PACKAGE_ADS.map((ad, idx) => (
-              <PackageAdCard key={ad.id} ad={ad} index={idx} />
+              <PackageAdCard key={ad.id} ad={ad} index={idx} navigateTo={navigate} />
             ))}
           </motion.div>
 
@@ -434,33 +466,54 @@ function Home() {
           </div>
 
           {/* Trip Card */}
-          <motion.div
-            className="glass-card"
-            variants={scaleIn}
-            whileHover={{ scale: 1.015, y: -2 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={() => navigate('/chat')}
+        <motion.div
+          className="glass-card"
+          variants={scaleIn}
+          whileHover={{ scale: 1.015, y: -2 }}
+          whileTap={{ scale: 0.98 }}
+          onClick={() => navigate('/chat')}
+          style={{
+            cursor: 'pointer',
+            position: 'relative',
+            overflow: 'hidden',
+            padding: 'var(--space-lg)',
+          }}
+        >
+          {/* Gradient accent top */}
+          <div
             style={{
-              cursor: 'pointer',
-              position: 'relative',
-              overflow: 'hidden',
-              padding: 'var(--space-lg)',
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              height: 3,
+              background: 'var(--gradient-aurora)',
             }}
-          >
-            {/* Gradient accent top */}
-            <div
-              style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                right: 0,
-                height: 3,
-                background: 'var(--gradient-aurora)',
-              }}
-            />
+          />
+
+          {/* Trip image */}
+          <div
+            style={{
+              position: 'absolute',
+              inset: 0,
+              backgroundImage: `url(${DESTINATIONS.find((d) => d.name === activeTrip.name)?.image || ''})`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+              filter: 'blur(0px)',
+              opacity: 0.18,
+            }}
+          />
+          <div
+            style={{
+              position: 'absolute',
+              inset: 0,
+              background: 'linear-gradient(180deg, rgba(10,10,26,0.15) 0%, rgba(10,10,26,0.85) 70%)',
+            }}
+          />
 
             <div
               style={{
+                position: 'relative',
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'flex-start',
