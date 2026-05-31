@@ -1,5 +1,6 @@
 import { useMemo, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useSearchParams } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { DESTINATIONS, GROUP_MEMBERS, REFUND_POLICY, PAYMENT_METHODS, KYC_TIERS } from '../data/mockTravelData';
 import { IndianRupee, Shield, AlertTriangle, Sparkles, Users, Check, ArrowRight, Repeat, X } from 'lucide-react';
@@ -46,6 +47,7 @@ function RefundBanner() {
 function SplitPreAuthCheckout() {
   const { state, dispatch } = useApp();
   const currentUser = state.currentUser;
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const itinerary = state.lockedItinerary || DESTINATIONS[0];
   const members = state.groupMembers || GROUP_MEMBERS;
@@ -95,9 +97,11 @@ function SplitPreAuthCheckout() {
   const [expired, setExpired] = useState(false);
   const [leaderOverride, setLeaderOverride] = useState(false);
 
-  const [pgStage, setPgStage] = useState('pre'); // pre | sunkCost | paymentMethods | processing | success
+  const [pgStage, setPgStage] = useState(searchParams.get('payment') === '1' ? 'sunkCost' : 'pre'); // pre | sunkCost | paymentMethods | processing | success
   const [sunkCostAccepted, setSunkCostAccepted] = useState(false);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState(null);
+
+  const [paymentModalOpen, setPaymentModalOpen] = useState(searchParams.get('payment') === '1');
 
   const quorumSatisfiedCount = useMemo(() => {
     const preAuths = state.preAuths || {};
@@ -137,10 +141,19 @@ function SplitPreAuthCheckout() {
 
   const tryCompletePayment = useCallback(() => {
     if (!quorumSatisfied) return;
-    // Phase: show the individual payment authorization interface (hardcoded prototype),
-    // then "process" after user accepts & selects a payment method.
+
+    // Open the "payment pop-up" modal immediately.
+    setPaymentModalOpen(true);
+
+    // Keep URL in sync (for reload/back support).
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.set('payment', '1');
+      return next;
+    });
+
     setPgStage('sunkCost');
-  }, [quorumSatisfied]);
+  }, [quorumSatisfied, setSearchParams]);
 
   const saveTheTrip = useCallback(() => {
     // In prototype, leader override also brings the user to the same authorization UI.
@@ -151,7 +164,14 @@ function SplitPreAuthCheckout() {
     setPgStage('pre');
     setSunkCostAccepted(false);
     setSelectedPaymentMethod(null);
-  }, []);
+    setPaymentModalOpen(false);
+
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.delete('payment');
+      return next;
+    });
+  }, [setSearchParams]);
 
   const authorizeMyShare = useCallback(() => {
     if (!sunkCostAccepted) return;
@@ -168,11 +188,26 @@ function SplitPreAuthCheckout() {
   }, [dispatch, selectedPaymentMethod]);
 
   return (
-    <div className="page">
+    <div className="page with-sticky-bottom">
       <RefundBanner />
 
-      {pgStage !== 'pre' && (
-        <div className="glass-card" style={{ padding: 16, marginBottom: 'var(--space-lg)' }}>
+      {paymentModalOpen && pgStage !== 'pre' && (
+        <div
+          className="glass-card"
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 80,
+            margin: 'auto',
+            maxWidth: 480,
+            height: 'fit-content',
+            top: 40,
+            bottom: 40,
+            overflow: 'auto',
+            padding: 16,
+            boxShadow: '0 18px 60px rgba(0,0,0,0.6)',
+          }}
+        >
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div
               style={{
@@ -673,6 +708,55 @@ function SplitPreAuthCheckout() {
           )}
         </div>
       </div>
+
+      {/* Sticky bottom confirmation bar (single high-priority action) */}
+      {pgStage === 'pre' && (
+        <div className="sticky-checkout-bar">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 11, color: 'var(--text-secondary)', fontWeight: 700 }}>Ready when quorum hits 100%</div>
+              <div style={{ fontSize: 13, color: 'var(--text-primary)', fontWeight: 900 }}>
+                Quorum: {quorumSatisfiedCount}/{quorumMemberCount}
+              </div>
+            </div>
+            <motion.button
+              className="btn btn-emerald"
+              style={{ padding: '12px 16px', minWidth: 160 }}
+              disabled={!quorumSatisfied || expired}
+              onClick={tryCompletePayment}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.99 }}
+            >
+              Execute booking
+              <ArrowRight size={18} />
+            </motion.button>
+          </div>
+        </div>
+      )}
+
+      {pgStage === 'sunkCost' && (
+        <div className="sticky-checkout-bar">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 11, color: 'var(--text-secondary)', fontWeight: 700 }}>Your exact total</div>
+              <div style={{ fontSize: 16, color: 'var(--accent-emerald)', fontWeight: 900 }}>
+                ₹{individualTotal.toLocaleString('en-IN')}
+              </div>
+            </div>
+            <motion.button
+              className="btn btn-primary"
+              style={{ padding: '12px 16px', minWidth: 160 }}
+              disabled={!sunkCostAccepted}
+              onClick={authorizeMyShare}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.99 }}
+            >
+              Authorize my share
+              <ArrowRight size={18} />
+            </motion.button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

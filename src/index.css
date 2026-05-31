@@ -1203,6 +1203,34 @@ h5 { font-size: var(--text-lg); }
   }
 }
 
+/* ---- Sticky Checkout Bar (desktop + mobile) ---- */
+.sticky-checkout-bar {
+  position: fixed;
+  bottom: calc(0px + env(safe-area-inset-bottom, 0px));
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 480px;
+  z-index: var(--z-sticky);
+  background: rgba(10, 10, 26, 0.92);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-top: 1px solid var(--glass-border);
+  padding: 10px 16px;
+}
+
+/* Make sure pages don't get hidden behind sticky bar */
+.with-sticky-bottom {
+  padding-bottom: 110px !important;
+}
+
+/* Compare table responsiveness */
+@media (max-width: 380px) {
+  .swipe-card {
+    border-radius: var(--radius-lg);
+  }
+}
+
 /* ---- Utility ---- */
 .flex { display: flex; }
 .flex-col { flex-direction: column; }
