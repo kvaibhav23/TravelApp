@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useSearchParams } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { DESTINATIONS, GROUP_MEMBERS, REFUND_POLICY, PAYMENT_METHODS, KYC_TIERS } from '../data/mockTravelData';
-import { IndianRupee, Shield, AlertTriangle, Sparkles, Users, Check, ArrowRight, Repeat, X } from 'lucide-react';
+import { IndianRupee, Shield, AlertTriangle, Sparkles, Users, Check, ArrowRight, Repeat, X, Menu, ClipboardList } from 'lucide-react';
 import SinglePayerCheckout from '../components/SinglePayerCheckout';
 import PreAuthTimer from '../components/PreAuthTimer';
 import RoomClaiming from '../components/RoomClaiming';
@@ -48,6 +48,8 @@ function SplitPreAuthCheckout() {
   const { state, dispatch } = useApp();
   const currentUser = state.currentUser;
   const [searchParams, setSearchParams] = useSearchParams();
+
+  const [optionsOpen, setOptionsOpen] = useState(false);
 
   const itinerary = state.lockedItinerary || DESTINATIONS[0];
   const members = state.groupMembers || GROUP_MEMBERS;
@@ -190,6 +192,99 @@ function SplitPreAuthCheckout() {
   return (
     <div className="page with-sticky-bottom">
       <RefundBanner />
+
+      {/* Options (hamburger-style) bottom sheet to reduce scrolling */}
+      <button
+        className="btn btn-ghost"
+        onClick={() => setOptionsOpen(true)}
+        style={{
+          position: 'sticky',
+          top: 12,
+          float: 'right',
+          marginLeft: 'auto',
+          display: 'inline-flex',
+          padding: '10px 12px',
+          marginBottom: 10,
+          zIndex: 5,
+        }}
+        aria-label="Open options"
+        title="Options"
+      >
+        <Menu size={18} />
+        <span style={{ fontSize: 12, fontWeight: 800 }}>Options</span>
+      </button>
+
+      <AnimatePresence>
+        {optionsOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            style={{
+              position: 'fixed',
+              inset: 0,
+              background: 'rgba(10, 10, 26, 0.55)',
+              zIndex: 90,
+              backdropFilter: 'blur(6px)',
+              WebkitBackdropFilter: 'blur(6px)',
+            }}
+            onClick={() => setOptionsOpen(false)}
+          >
+            <motion.div
+              initial={{ y: 40 }}
+              animate={{ y: 0 }}
+              exit={{ y: 40 }}
+              transition={{ duration: 0.2 }}
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                position: 'absolute',
+                left: 0,
+                right: 0,
+                bottom: 0,
+                maxWidth: 480,
+                margin: '0 auto',
+                borderTopLeftRadius: 18,
+                borderTopRightRadius: 18,
+                background: 'rgba(10, 10, 26, 0.96)',
+                border: '1px solid var(--glass-border)',
+                borderBottom: 'none',
+                padding: 14,
+                boxShadow: '0 -20px 60px rgba(0,0,0,0.6)',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <ClipboardList size={18} color="var(--accent-secondary)" />
+                  <div>
+                    <div style={{ fontSize: 12, fontWeight: 900 }}>Quick Options</div>
+                    <div style={{ fontSize: 10, color: 'var(--text-secondary)', marginTop: 2 }}>Jump without scrolling</div>
+                  </div>
+                </div>
+                <button className="btn btn-ghost" style={{ padding: '8px 10px' }} onClick={() => setOptionsOpen(false)}>
+                  <X size={16} />
+                </button>
+              </div>
+
+              <div className="divider" style={{ margin: '12px 0' }} />
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <button className="btn btn-ghost btn-full" onClick={() => setOptionsOpen(false)} style={{ justifyContent: 'space-between' }}>
+                  Compare Packages
+                  <ArrowRight size={16} />
+                </button>
+                <button className="btn btn-ghost btn-full" onClick={() => setOptionsOpen(false)} style={{ justifyContent: 'space-between' }}>
+                  Peer Accountability
+                  <ArrowRight size={16} />
+                </button>
+                <button className="btn btn-ghost btn-full" onClick={() => setOptionsOpen(false)} style={{ justifyContent: 'space-between' }}>
+                  Receipt Breakdown
+                  <ArrowRight size={16} />
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {paymentModalOpen && pgStage !== 'pre' && (
         <div

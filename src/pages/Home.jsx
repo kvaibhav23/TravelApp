@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Plus,
@@ -10,6 +10,9 @@ import {
   MapPin,
   X,
   ArrowRight,
+  TicketPercent,
+  Zap,
+  Tags,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
@@ -162,6 +165,105 @@ function MiniHealthRing({ percent = 20 }) {
 /* ═══════════════════════════════════════════
    HOME PAGE COMPONENT
    ═══════════════════════════════════════════ */
+function PackageAdCard({ ad, index }) {
+  return (
+    <motion.div
+      className="glass-card"
+      style={{
+        padding: '14px 14px',
+        minWidth: 300,
+        maxWidth: 340,
+        scrollSnapAlign: 'start',
+        border: '1px solid var(--glass-border)',
+        background: 'linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01))',
+      }}
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35, delay: index * 0.04 }}
+      whileTap={{ scale: 0.99 }}
+    >
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
+        <div style={{ minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+            <span
+              className="badge badge-amber"
+              style={{
+                fontSize: 10,
+                padding: '6px 10px',
+                background: 'rgba(255,138,0,0.14)',
+                border: '1px solid rgba(255,138,0,0.22)',
+              }}
+            >
+              <TicketPercent size={12} /> Deal
+            </span>
+            <span style={{ fontSize: 11, color: 'var(--text-secondary)', fontWeight: 700 }}>
+              {ad.offerTag}
+            </span>
+          </div>
+
+          <div style={{ fontSize: 14, fontWeight: 900, fontFamily: 'var(--font-heading)', marginBottom: 4 }}>
+            {ad.title}
+          </div>
+
+          <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.4 }}>
+            {ad.subtitle}
+          </div>
+        </div>
+
+        <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8 }}>
+          <div
+            style={{
+              width: 44,
+              height: 44,
+              borderRadius: 'var(--radius-md)',
+              background: 'var(--gradient-primary)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: '0 0 22px rgba(255,77,77,0.25)',
+              color: 'white',
+            }}
+            aria-hidden="true"
+          >
+            <Zap size={18} />
+          </div>
+
+          <div style={{ textAlign: 'right' }}>
+            <div style={{ fontSize: 10, color: 'var(--text-muted)', fontWeight: 700, textDecoration: 'line-through' }}>
+              ₹{ad.comparisonPrice.toLocaleString('en-IN')}
+            </div>
+            <div style={{ fontSize: 14, color: 'var(--text-primary)', fontWeight: 950 }}>
+              ₹{ad.dealPrice.toLocaleString('en-IN')}
+            </div>
+            <div style={{ fontSize: 10, color: 'var(--accent-emerald)', fontWeight: 800 }}>
+              save {ad.savingsPct}%
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="divider" style={{ margin: '12px 0 10px' }} />
+
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', color: 'var(--text-secondary)', fontSize: 11, fontWeight: 700 }}>
+          <Tags size={14} />
+          {ad.smallMeta}
+        </div>
+        <motion.button
+          className="btn btn-ghost"
+          style={{ padding: '8px 10px' }}
+          onClick={() => ad.route ? navigate(ad.route) : undefined}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+        >
+          View
+          <ArrowRight size={16} />
+        </motion.button>
+      </div>
+    </motion.div>
+  );
+}
+
 function Home() {
   const { state } = useApp();
   const navigate = useNavigate();
@@ -169,6 +271,42 @@ function Home() {
   const [inviteCode, setInviteCode] = useState('');
 
   const { currentUser, activeTrip, groupMembers } = state;
+
+  const PACKAGE_ADS = useMemo(() => ([
+    {
+      id: 'p1',
+      title: 'Goa Beach Escape',
+      subtitle: 'Flights + beachfront villa bundle (3N/4D) • limited seats',
+      offerTag: 'HOT DEAL',
+      comparisonPrice: 28999,
+      dealPrice: 21999,
+      savingsPct: 24,
+      smallMeta: 'Book in 2 mins',
+      route: '/vote',
+    },
+    {
+      id: 'p2',
+      title: 'Kerala Backwaters Family Plan',
+      subtitle: 'Houseboat + stay • kid-friendly rooms + flexible timings',
+      offerTag: 'FAMILY PICK',
+      comparisonPrice: 34999,
+      dealPrice: 26999,
+      savingsPct: 23,
+      smallMeta: 'Best for groups',
+      route: '/ai-planner',
+    },
+    {
+      id: 'p3',
+      title: 'Dubai Long Weekend Spark',
+      subtitle: 'Direct flights + hotel suite • optimized for 4 days',
+      offerTag: 'LONG WEEKEND',
+      comparisonPrice: 59999,
+      dealPrice: 45999,
+      savingsPct: 23,
+      smallMeta: 'Fastest checkout',
+      route: '/vote',
+    },
+  ]), [navigate]);
 
   return (
     <div className="page">
@@ -224,6 +362,53 @@ function Home() {
         {/* ─── Long Weekend Detector ─── */}
         <motion.div variants={itemVariants} style={{ marginBottom: 'var(--space-lg)' }}>
           <LongWeekendDetector />
+        </motion.div>
+
+        {/* ─── Package Ads (swipe left offers) ─── */}
+        <motion.div variants={itemVariants} style={{ marginBottom: 'var(--space-lg)' }}>
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: 'var(--space-md)',
+              gap: 12,
+            }}
+          >
+            <h3
+              style={{
+                fontSize: 'var(--text-lg)',
+                fontWeight: 700,
+                fontFamily: 'var(--font-heading)',
+                margin: 0,
+              }}
+            >
+              Travel Deals
+            </h3>
+
+            <span className="badge badge-primary" style={{ fontSize: 11 }}>
+              Swipe for offers
+            </span>
+          </div>
+
+          <motion.div
+            style={{
+              display: 'flex',
+              gap: 12,
+              overflowX: 'auto',
+              paddingBottom: 8,
+              WebkitOverflowScrolling: 'touch',
+              scrollSnapType: 'x mandatory',
+            }}
+          >
+            {PACKAGE_ADS.map((ad, idx) => (
+              <PackageAdCard key={ad.id} ad={ad} index={idx} />
+            ))}
+          </motion.div>
+
+          <div style={{ marginTop: 10, color: 'var(--text-muted)', fontSize: 11, lineHeight: 1.4 }}>
+            OTA-style demo: deals show comparison price + savings, without overwhelming the user.
+          </div>
         </motion.div>
 
         {/* ─── Active Trips Section ─── */}

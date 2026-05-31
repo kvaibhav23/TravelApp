@@ -12,21 +12,22 @@
   --bg-elevated: #222255;
 
   /* Accent colors */
-  --accent-primary: #7c3aed;
-  --accent-secondary: #a78bfa;
-  --accent-coral: #ff6b6b;
-  --accent-emerald: #10b981;
-  --accent-amber: #f59e0b;
-  --accent-cyan: #06b6d4;
-  --accent-rose: #f43f5e;
+  /* MakeMyTrip-ish palette (warm red/orange + teal/cyan) */
+  --accent-primary: #ff4d4d;   /* primary CTA red */
+  --accent-secondary: #ff8a00; /* highlight orange */
+  --accent-coral: #ff4d4d;      /* keep coral aligned */
+  --accent-emerald: #00b3a4;   /* teal success */
+  --accent-amber: #ff8a00;     /* amber/orange */
+  --accent-cyan: #00a3ff;      /* cyan accent */
+  --accent-rose: #ff2d55;      /* magenta-rose */
 
   /* Gradients */
-  --gradient-primary: linear-gradient(135deg, #7c3aed 0%, #a78bfa 100%);
-  --gradient-coral: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
-  --gradient-emerald: linear-gradient(135deg, #10b981 0%, #059669 100%);
-  --gradient-sunset: linear-gradient(135deg, #f59e0b 0%, #ff6b6b 100%);
-  --gradient-aurora: linear-gradient(135deg, #7c3aed 0%, #06b6d4 50%, #10b981 100%);
-  --gradient-card: linear-gradient(145deg, rgba(124,58,237,0.1) 0%, rgba(167,139,250,0.05) 100%);
+  --gradient-primary: linear-gradient(135deg, #ff4d4d 0%, #ff8a00 100%);
+  --gradient-coral: linear-gradient(135deg, #ff4d4d 0%, #ff2d55 100%);
+  --gradient-emerald: linear-gradient(135deg, #00b3a4 0%, #00a6ff 100%);
+  --gradient-sunset: linear-gradient(135deg, #ff8a00 0%, #ff4d4d 100%);
+  --gradient-aurora: linear-gradient(135deg, #ff8a00 0%, #00a3ff 50%, #00b3a4 100%);
+  --gradient-card: linear-gradient(145deg, rgba(255,77,77,0.10) 0%, rgba(0,179,164,0.05) 100%);
 
   /* Text colors */
   --text-primary: #f0f0ff;
@@ -409,27 +410,27 @@ h5 { font-size: var(--text-lg); }
 }
 
 .badge-primary {
-  background: rgba(124, 58, 237, 0.2);
+  background: rgba(255, 77, 77, 0.18);
   color: var(--accent-secondary);
-  border: 1px solid rgba(124, 58, 237, 0.3);
+  border: 1px solid rgba(255, 77, 77, 0.28);
 }
 
 .badge-emerald {
-  background: rgba(16, 185, 129, 0.2);
+  background: rgba(0, 179, 164, 0.18);
   color: var(--accent-emerald);
-  border: 1px solid rgba(16, 185, 129, 0.3);
+  border: 1px solid rgba(0, 179, 164, 0.28);
 }
 
 .badge-coral {
-  background: rgba(255, 107, 107, 0.2);
+  background: rgba(255, 77, 77, 0.18);
   color: var(--accent-coral);
-  border: 1px solid rgba(255, 107, 107, 0.3);
+  border: 1px solid rgba(255, 77, 77, 0.28);
 }
 
 .badge-amber {
-  background: rgba(245, 158, 11, 0.2);
+  background: rgba(255, 138, 0, 0.18);
   color: var(--accent-amber);
-  border: 1px solid rgba(245, 158, 11, 0.3);
+  border: 1px solid rgba(255, 138, 0, 0.28);
 }
 
 .badge-cyan {
