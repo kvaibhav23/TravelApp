@@ -242,7 +242,7 @@ function SplitPreAuthCheckout() {
             style={{
               position: 'fixed',
               inset: 0,
-              background: 'rgba(10, 10, 26, 0.55)',
+              background: 'rgba(255, 255, 255, 0.82)',
               zIndex: 90,
               backdropFilter: 'blur(6px)',
               WebkitBackdropFilter: 'blur(6px)',
@@ -264,11 +264,12 @@ function SplitPreAuthCheckout() {
                 margin: '0 auto',
                 borderTopLeftRadius: 18,
                 borderTopRightRadius: 18,
-                background: 'rgba(10, 10, 26, 0.96)',
+                background: 'rgba(255, 255, 255, 0.97)',
                 border: '1px solid var(--glass-border)',
                 borderBottom: 'none',
                 padding: 14,
-                boxShadow: '0 -20px 60px rgba(0,0,0,0.6)',
+                boxShadow: '0 -20px 60px rgba(2, 6, 23, 0.18)',
+                color: 'var(--text-primary)',
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
@@ -292,21 +293,21 @@ function SplitPreAuthCheckout() {
                 <button
                   className="btn btn-ghost btn-full"
                   onClick={() => setOptionsOpen(false)}
-                  style={{ justifyContent: 'space-between' }}
+                  style={{ justifyContent: 'space-between', color: 'var(--text-primary)' }}
                 >
                   Compare Packages <ArrowRight size={16} />
                 </button>
                 <button
                   className="btn btn-ghost btn-full"
                   onClick={() => setOptionsOpen(false)}
-                  style={{ justifyContent: 'space-between' }}
+                  style={{ justifyContent: 'space-between', color: 'var(--text-primary)' }}
                 >
                   Peer Accountability <ArrowRight size={16} />
                 </button>
                 <button
                   className="btn btn-ghost btn-full"
                   onClick={() => setOptionsOpen(false)}
-                  style={{ justifyContent: 'space-between' }}
+                  style={{ justifyContent: 'space-between', color: 'var(--text-primary)' }}
                 >
                   Receipt Breakdown <ArrowRight size={16} />
                 </button>
