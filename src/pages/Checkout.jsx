@@ -938,3 +938,216 @@ export default function Checkout() {
     </div>
   );
 }
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+                  {status === 'authorized' ? (
+                    <span className="badge badge-emerald" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <Check size={12} /> Done
+                    </span>
+                  ) : (
+                    <>
+                      <motion.button
+                        className="btn btn-ghost"
+                        style={{ padding: '10px 12px' }}
+                        disabled={!canToggle}
+                        onClick={() => setMemberDeclined(m.id)}
+                        whileTap={{ scale: 0.98 }}
+                      >
+                        Decline
+                      </motion.button>
+                      <motion.button
+                        className="btn btn-primary"
+                        style={{ padding: '10px 12px' }}
+                        disabled={!canToggle}
+                        onClick={() => setMemberAuthorized(m.id)}
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                      >
+                        Authorize
+                      </motion.button>
+                    </>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        <div style={{ marginTop: 16, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+          <motion.button
+            className="btn btn-emerald btn-lg btn-full"
+            disabled={!quorumSatisfied || expired}
+            style={{
+              opacity: !quorumSatisfied || expired ? 0.6 : 1,
+              pointerEvents: !quorumSatisfied || expired ? 'none' : 'auto',
+            }}
+            onClick={tryCompletePayment}
+            whileHover={{ scale: 1.01 }}
+            whileTap={{ scale: 0.99 }}
+          >
+            Execute Booking (Quorum Reached)
+            <ArrowRight size={18} />
+          </motion.button>
+
+          <motion.button
+            className="btn btn-ghost btn-full"
+            onClick={() => setLeaderOverride((v) => !v)}
+            whileHover={{ scale: 1.01 }}
+            whileTap={{ scale: 0.99 }}
+            style={{ flex: '1 1 220px' }}
+          >
+            {leaderOverride ? 'Leader override: ON' : 'Leader override: OFF'}
+          </motion.button>
+        </div>
+
+        {leaderOverride && (
+          <div style={{ marginTop: 14, fontSize: 12, color: 'var(--text-secondary)' }}>
+            Prototype mode: leader override enables “Save the Trip” even if quorum isn’t 100% yet.
+          </div>
+        )}
+      </div>
+
+      {/* Save the Trip CTA (always visible; gated by leader override in prototype) */}
+      <div className="glass-card" style={{ padding: 16, marginTop: 'var(--space-lg)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <AlertTriangle size={18} color="var(--accent-amber)" />
+          <div style={{ flex: 1 }}>
+            <div style={{ fontWeight: 900, color: 'var(--accent-amber)' }}>Prevent booking collapse</div>
+            <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>
+              {quorumSatisfied
+                ? 'Quorum is satisfied — you can still proceed with booking.'
+                : 'If any member fails to authorize, leader override lets one user cover the remaining balance.'}
+            </div>
+          </div>
+          <span className="badge badge-amber" style={{ fontSize: 11, padding: '6px 10px', opacity: 0.95 }}>
+            Leader override: {leaderOverride ? 'ON' : 'OFF'}
+          </span>
+        </div>
+
+        <div style={{ marginTop: 12 }}>
+          <motion.button
+            className="btn btn-primary btn-full btn-lg"
+            onClick={saveTheTrip}
+            disabled={!leaderOverride}
+            style={{
+              opacity: leaderOverride ? 1 : 0.6,
+              pointerEvents: leaderOverride ? 'auto' : 'none',
+            }}
+            whileHover={{ scale: 1.01 }}
+            whileTap={{ scale: 0.99 }}
+          >
+            Save the Trip (Leader Cover)
+            <ArrowRight size={18} />
+          </motion.button>
+
+          {!leaderOverride && (
+            <div style={{ marginTop: 8, fontSize: 11, color: 'var(--text-muted)' }}>
+              Turn on “Leader override” to activate Save the Trip in this prototype.
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Sticky bottom confirmation bar (single high-priority action) */}
+      {pgStage === 'pre' && (
+        <div className="sticky-checkout-bar">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 11, color: 'var(--text-secondary)', fontWeight: 700 }}>Ready when quorum hits 100%</div>
+              <div style={{ fontSize: 13, color: 'var(--text-primary)', fontWeight: 900 }}>
+                Quorum: {quorumSatisfiedCount}/{quorumMemberCount}
+              </div>
+            </div>
+            <motion.button
+              className="btn btn-emerald"
+              style={{ padding: '12px 16px', minWidth: 160 }}
+              disabled={!quorumSatisfied || expired}
+              onClick={tryCompletePayment}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.99 }}
+            >
+              Execute booking
+              <ArrowRight size={18} />
+            </motion.button>
+          </div>
+        </div>
+      )}
+
+      {pgStage === 'sunkCost' && (
+        <div className="sticky-checkout-bar">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 11, color: 'var(--text-secondary)', fontWeight: 700 }}>Your exact total</div>
+              <div style={{ fontSize: 16, color: 'var(--accent-emerald)', fontWeight: 900 }}>
+                ₹{individualTotal.toLocaleString('en-IN')}
+              </div>
+            </div>
+            <motion.button
+              className="btn btn-primary"
+              style={{ padding: '12px 16px', minWidth: 160 }}
+              disabled={!sunkCostAccepted}
+              onClick={authorizeMyShare}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.99 }}
+            >
+              Authorize my share
+              <ArrowRight size={18} />
+            </motion.button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default function Checkout() {
+  const { state } = useApp();
+  const itinerary = state.lockedItinerary || DESTINATIONS[0];
+  const memberCount = state.groupMembers?.length || 6;
+
+  const estimatedTotal = Math.round(itinerary.pricePerPerson * memberCount * 1.12 + 499); // include GST-ish + platform fee
+
+  // Tiered KYC / progressive friction model (prototype heuristic):
+  // - Lite KYC for small transactions (under ₹10k) => treat as single payer route
+  // - Full KYC trigger for large, multi-family group pre-auths above regulatory thresholds => Flow A
+  const perPerson = itinerary.pricePerPerson;
+  const shouldUseSplitPreAuth = perPerson > LITE_KYC_LIMIT && memberCount >= 4;
+
+  return (
+    <div className="page">
+      <div className="page-header" style={{ marginBottom: 'var(--space-lg)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <Sparkles size={22} color="var(--accent-secondary)" />
+          <h1 className="page-title text-gradient" style={{ fontSize: 'var(--text-2xl)' }}>
+            Checkout
+          </h1>
+        </div>
+        <p className="page-subtitle">
+          {itinerary.name} • {memberCount} members
+        </p>
+      </div>
+
+      <AnimatePresence mode="wait">
+        {shouldUseSplitPreAuth ? (
+          <motion.div key="flowA" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
+            <SplitPreAuthCheckout />
+          </motion.div>
+        ) : (
+          <motion.div key="flowB" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
+            {/* Flow B should still show refund banner transparency */}
+            <RefundBanner />
+            <SinglePayerCheckout />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Tiny footer note */}
+      <div style={{ marginTop: 18, textAlign: 'center', color: 'var(--text-muted)', fontSize: 11 }}>
+        Prototype only — integrations (UPI SDK / KYC API / booking aggregator) are mocked.
+      </div>
+    </div>
+  );
+}
