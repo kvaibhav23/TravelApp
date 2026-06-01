@@ -2,17 +2,35 @@ import { useMemo, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSearchParams } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
-import { DESTINATIONS, GROUP_MEMBERS, REFUND_POLICY, PAYMENT_METHODS, KYC_TIERS } from '../data/mockTravelData';
-import { IndianRupee, Shield, AlertTriangle, Sparkles, Users, Check, ArrowRight, Repeat, X, Menu, ClipboardList } from 'lucide-react';
+import {
+  DESTINATIONS,
+  GROUP_MEMBERS,
+  REFUND_POLICY,
+  PAYMENT_METHODS,
+  KYC_TIERS,
+} from '../data/mockTravelData';
+import {
+  Shield,
+  AlertTriangle,
+  Repeat,
+  X,
+  Menu,
+  ClipboardList,
+  Users,
+  Check,
+  ArrowRight,
+  Sparkles,
+} from 'lucide-react';
+
 import SinglePayerCheckout from '../components/SinglePayerCheckout';
 import PreAuthTimer from '../components/PreAuthTimer';
 import RoomClaiming from '../components/RoomClaiming';
 import ComparePackagesTable from '../components/ComparePackagesTable';
 import PeerAccountabilityTracker from '../components/PeerAccountabilityTracker';
 import TripReceiptAccordion from '../components/TripReceiptAccordion';
+
 import '../index.css';
 
-const PREAUTH_QUORUM_PCT = 100; // booking executes only when 100% quorum is reached
 const PREAUTH_TIMEOUT_SECONDS = 180; // demo timer for prototype
 const LITE_KYC_LIMIT = 10000; // ₹10k threshold per the spec
 
@@ -55,11 +73,9 @@ function SplitPreAuthCheckout() {
   const members = state.groupMembers || GROUP_MEMBERS;
 
   // Prototype-only: allow editing "number of people" without mutating the real member list.
-  // Auth/quorum still depends on actual groupMembers, but totals/shares use this override.
   const [peopleCountOverride, setPeopleCountOverride] = useState(members.length || 1);
 
   useMemo(() => {
-    // keep override in sync if member list changes
     setPeopleCountOverride((v) => {
       const base = members.length || 1;
       if (Number.isFinite(v) && v > 0) return v;
@@ -85,7 +101,8 @@ function SplitPreAuthCheckout() {
   const quorumMemberCount = members.length || 1;
   const paidByPeopleCount = Math.max(1, peopleCountOverride || quorumMemberCount);
 
-  const claimedPerPersonProxy = Math.round((effectiveClaimsAmount / Math.max(1, paidByPeopleCount)) * 100) / 100;
+  const claimedPerPersonProxy =
+    Math.round((effectiveClaimsAmount / Math.max(1, paidByPeopleCount)) * 100) / 100;
 
   const needsLiteKyc = claimedPerPersonProxy <= LITE_KYC_LIMIT;
   const requiredKycTier = needsLiteKyc ? 'lite' : 'full';
@@ -94,12 +111,17 @@ function SplitPreAuthCheckout() {
   const platformFee = 499;
   const totalTripAmount = Math.round(itinerary.pricePerPerson * paidByPeopleCount + taxes + platformFee);
 
-  const individualTotal = Math.round(itinerary.pricePerPerson + Math.round((itinerary.pricePerPerson * 0.12) || 0) + Math.round(platformFee / Math.max(1, paidByPeopleCount)));
+  const individualTotal = Math.round(
+    itinerary.pricePerPerson +
+      Math.round((itinerary.pricePerPerson * 0.12) || 0) +
+      Math.round(platformFee / Math.max(1, paidByPeopleCount))
+  );
 
   const [expired, setExpired] = useState(false);
   const [leaderOverride, setLeaderOverride] = useState(false);
 
-  const [pgStage, setPgStage] = useState(searchParams.get('payment') === '1' ? 'sunkCost' : 'pre'); // pre | sunkCost | paymentMethods | processing | success
+  // pre | sunkCost | paymentMethods | processing | success
+  const [pgStage, setPgStage] = useState(searchParams.get('payment') === '1' ? 'sunkCost' : 'pre');
   const [sunkCostAccepted, setSunkCostAccepted] = useState(false);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState(null);
 
@@ -121,9 +143,7 @@ function SplitPreAuthCheckout() {
     }, {});
   }, [members, state.preAuths]);
 
-  const handleExpired = useCallback(() => {
-    setExpired(true);
-  }, []);
+  const handleExpired = useCallback(() => setExpired(true), []);
 
   const setMemberAuthorized = useCallback(
     (userId) => {
@@ -144,10 +164,8 @@ function SplitPreAuthCheckout() {
   const tryCompletePayment = useCallback(() => {
     if (!quorumSatisfied) return;
 
-    // Open the "payment pop-up" modal immediately.
     setPaymentModalOpen(true);
 
-    // Keep URL in sync (for reload/back support).
     setSearchParams((prev) => {
       const next = new URLSearchParams(prev);
       next.set('payment', '1');
@@ -158,7 +176,6 @@ function SplitPreAuthCheckout() {
   }, [quorumSatisfied, setSearchParams]);
 
   const saveTheTrip = useCallback(() => {
-    // In prototype, leader override also brings the user to the same authorization UI.
     setPgStage('sunkCost');
   }, []);
 
@@ -183,6 +200,8 @@ function SplitPreAuthCheckout() {
   const startPayment = useCallback(() => {
     if (!selectedPaymentMethod) return;
     setPgStage('processing');
+
+    // prototype: complete after delay
     setTimeout(() => {
       dispatch({ type: 'COMPLETE_PAYMENT' });
       setPgStage('success');
@@ -257,7 +276,9 @@ function SplitPreAuthCheckout() {
                   <ClipboardList size={18} color="var(--accent-secondary)" />
                   <div>
                     <div style={{ fontSize: 12, fontWeight: 900 }}>Quick Options</div>
-                    <div style={{ fontSize: 10, color: 'var(--text-secondary)', marginTop: 2 }}>Jump without scrolling</div>
+                    <div style={{ fontSize: 10, color: 'var(--text-secondary)', marginTop: 2 }}>
+                      Jump without scrolling
+                    </div>
                   </div>
                 </div>
                 <button className="btn btn-ghost" style={{ padding: '8px 10px' }} onClick={() => setOptionsOpen(false)}>
@@ -268,17 +289,26 @@ function SplitPreAuthCheckout() {
               <div className="divider" style={{ margin: '12px 0' }} />
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                <button className="btn btn-ghost btn-full" onClick={() => setOptionsOpen(false)} style={{ justifyContent: 'space-between' }}>
-                  Compare Packages
-                  <ArrowRight size={16} />
+                <button
+                  className="btn btn-ghost btn-full"
+                  onClick={() => setOptionsOpen(false)}
+                  style={{ justifyContent: 'space-between' }}
+                >
+                  Compare Packages <ArrowRight size={16} />
                 </button>
-                <button className="btn btn-ghost btn-full" onClick={() => setOptionsOpen(false)} style={{ justifyContent: 'space-between' }}>
-                  Peer Accountability
-                  <ArrowRight size={16} />
+                <button
+                  className="btn btn-ghost btn-full"
+                  onClick={() => setOptionsOpen(false)}
+                  style={{ justifyContent: 'space-between' }}
+                >
+                  Peer Accountability <ArrowRight size={16} />
                 </button>
-                <button className="btn btn-ghost btn-full" onClick={() => setOptionsOpen(false)} style={{ justifyContent: 'space-between' }}>
-                  Receipt Breakdown
-                  <ArrowRight size={16} />
+                <button
+                  className="btn btn-ghost btn-full"
+                  onClick={() => setOptionsOpen(false)}
+                  style={{ justifyContent: 'space-between' }}
+                >
+                  Receipt Breakdown <ArrowRight size={16} />
                 </button>
               </div>
             </motion.div>
@@ -286,6 +316,7 @@ function SplitPreAuthCheckout() {
         )}
       </AnimatePresence>
 
+      {/* Payment modal */}
       {paymentModalOpen && pgStage !== 'pre' && (
         <>
           {/* Opaque backdrop for payment modal */}
@@ -294,12 +325,13 @@ function SplitPreAuthCheckout() {
               position: 'fixed',
               inset: 0,
               zIndex: 79,
-              background: 'rgba(10, 10, 26, 0.78)',
-              backdropFilter: 'blur(10px)',
-              WebkitBackdropFilter: 'blur(10px)',
+              background: 'rgba(255, 255, 255, 0.90)',
+              backdropFilter: 'blur(8px)',
+              WebkitBackdropFilter: 'blur(8px)',
             }}
             onClick={resetPgFlow}
           />
+
           <div
             className="glass-card"
             style={{
@@ -313,7 +345,7 @@ function SplitPreAuthCheckout() {
               bottom: 40,
               overflow: 'auto',
               padding: 16,
-              boxShadow: '0 18px 60px rgba(0,0,0,0.6)',
+              boxShadow: '0 18px 60px rgba(0,0,0,0.25)',
             }}
             onClick={(e) => e.stopPropagation()}
           >
@@ -333,20 +365,16 @@ function SplitPreAuthCheckout() {
               >
                 <Shield size={20} color="var(--accent-emerald)" />
               </div>
+
               <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--accent-emerald)' }}>
-                  Push notification
-                </div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--accent-emerald)' }}>Push notification</div>
                 <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>
-                  Your trip to <strong>{itinerary.name.split(' ')[0]}</strong> is ready to lock!
+                  Your trip to <strong>{(itinerary?.name || '').split(' ')[0] || 'your destination'}</strong> is ready
+                  to lock!
                 </div>
               </div>
-              <button
-                className="btn btn-ghost"
-                style={{ padding: '8px 10px' }}
-                onClick={resetPgFlow}
-                title="Close"
-              >
+
+              <button className="btn btn-ghost" style={{ padding: '8px 10px' }} onClick={resetPgFlow} title="Close">
                 <X size={18} />
               </button>
             </div>
@@ -357,23 +385,24 @@ function SplitPreAuthCheckout() {
               <>
                 <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center' }}>
                   <div>
-                    <div style={{ fontSize: 12, color: 'var(--text-secondary)', fontWeight: 600 }}>
-                      Your exact total
-                    </div>
-                    <div style={{ fontSize: 26, fontWeight: 900, fontFamily: 'var(--font-heading)', color: 'var(--accent-emerald)', marginTop: 4 }}>
+                    <div style={{ fontSize: 12, color: 'var(--text-secondary)', fontWeight: 600 }}>Your exact total</div>
+                    <div
+                      style={{
+                        fontSize: 26,
+                        fontWeight: 900,
+                        fontFamily: 'var(--font-heading)',
+                        color: 'var(--accent-emerald)',
+                        marginTop: 4,
+                      }}
+                    >
                       ₹{individualTotal.toLocaleString('en-IN')}
                     </div>
-                    <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 4 }}>
-                      (demo individual share)
-                    </div>
+                    <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 4 }}>(demo individual share)</div>
                   </div>
+
                   <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: 12, color: 'var(--text-secondary)', fontWeight: 600 }}>
-                      Included for you
-                    </div>
-                    <div style={{ fontSize: 12, color: 'var(--text-primary)', marginTop: 4 }}>
-                      Flights + Villa + Fees (prototype)
-                    </div>
+                    <div style={{ fontSize: 12, color: 'var(--text-secondary)', fontWeight: 600 }}>Included for you</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-primary)', marginTop: 4 }}>Flights + Villa + Fees (prototype)</div>
                   </div>
                 </div>
 
@@ -408,8 +437,7 @@ function SplitPreAuthCheckout() {
                     }}
                     onClick={authorizeMyShare}
                   >
-                    Authorize My Share
-                    <ArrowRight size={18} />
+                    Authorize My Share <ArrowRight size={18} />
                   </button>
                 </div>
               </>
@@ -417,9 +445,7 @@ function SplitPreAuthCheckout() {
 
             {pgStage === 'paymentMethods' && (
               <>
-                <div style={{ fontSize: 14, fontWeight: 900, color: 'var(--text-primary)' }}>
-                  Choose payment method
-                </div>
+                <div style={{ fontSize: 14, fontWeight: 900, color: 'var(--text-primary)' }}>Choose payment method</div>
                 <div style={{ fontSize: 10, color: 'var(--text-secondary)', marginTop: 4 }}>
                   Payment interface opens after you approve the authorization (prototype).
                 </div>
@@ -433,14 +459,12 @@ function SplitPreAuthCheckout() {
                         padding: 12,
                         cursor: 'pointer',
                         border:
-                          selectedPaymentMethod === m.id
-                            ? '2px solid var(--accent-primary)'
-                            : '1px solid var(--glass-border)',
-                        background:
-                          selectedPaymentMethod === m.id ? 'rgba(124,58,237,0.12)' : 'var(--glass-bg)',
+                          selectedPaymentMethod === m.id ? '2px solid var(--accent-primary)' : '1px solid var(--glass-border)',
+                        background: selectedPaymentMethod === m.id ? 'rgba(124,58,237,0.12)' : 'var(--glass-bg)',
                         textAlign: 'center',
                       }}
                       onClick={() => setSelectedPaymentMethod(m.id)}
+                      type="button"
                     >
                       <div
                         style={{
@@ -452,15 +476,13 @@ function SplitPreAuthCheckout() {
                           alignItems: 'center',
                           justifyContent: 'center',
                           background: 'rgba(255,255,255,0.03)',
-                          border: `1px solid rgba(255,255,255,0.08)`,
+                          border: '1px solid rgba(255,255,255,0.08)',
                         }}
                       >
                         <span style={{ fontSize: 20, lineHeight: 1 }}>{m.icon}</span>
                       </div>
 
-                      <div style={{ fontSize: 12, fontWeight: 900, marginTop: 8 }}>
-                        {m.name}
-                      </div>
+                      <div style={{ fontSize: 12, fontWeight: 900, marginTop: 8 }}>{m.name}</div>
                     </button>
                   ))}
                 </div>
@@ -474,9 +496,9 @@ function SplitPreAuthCheckout() {
                       pointerEvents: selectedPaymentMethod ? 'auto' : 'none',
                     }}
                     onClick={startPayment}
+                    type="button"
                   >
-                    Open PG & Authorize
-                    <ArrowRight size={18} />
+                    Open PG & Authorize <ArrowRight size={18} />
                   </button>
                 </div>
               </>
@@ -487,19 +509,15 @@ function SplitPreAuthCheckout() {
                 <div style={{ fontSize: 14, fontWeight: 900, color: 'var(--text-primary)' }}>
                   Authorizing via Payment Gateway…
                 </div>
-                <div style={{ fontSize: 10, color: 'var(--text-secondary)', marginTop: 6 }}>
-                  capture_method: manual (prototype hold)
-                </div>
+                <div style={{ fontSize: 10, color: 'var(--text-secondary)', marginTop: 6 }}>capture_method: manual (prototype hold)</div>
               </div>
             )}
 
             {pgStage === 'success' && (
               <div style={{ padding: 10, textAlign: 'center' }}>
-                <div style={{ fontSize: 18, fontWeight: 900, color: 'var(--accent-emerald)' }}>
-                  Trip Booked! 🎉
-                </div>
+                <div style={{ fontSize: 18, fontWeight: 900, color: 'var(--accent-emerald)' }}>Trip Booked! 🎉</div>
                 <div style={{ fontSize: 10, color: 'var(--text-secondary)', marginTop: 6 }}>
-                  Confirmed itinerary: {itinerary.name} (prototype)
+                  Confirmed itinerary: {itinerary?.name || 'prototype'} (prototype)
                 </div>
               </div>
             )}
@@ -507,6 +525,7 @@ function SplitPreAuthCheckout() {
         </>
       )}
 
+      {/* Split cost + KYC + quorum header */}
       <div className="glass-card" style={{ padding: '16px', marginBottom: 'var(--space-lg)' }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
           <div
@@ -524,11 +543,10 @@ function SplitPreAuthCheckout() {
           >
             <Users size={20} color="var(--accent-secondary)" />
           </div>
+
           <div style={{ flex: 1 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-              <h1 style={{ margin: 0, fontSize: 'var(--text-2xl)' }}>
-                Split Cost — Pre-Auth Route
-              </h1>
+              <h1 style={{ margin: 0, fontSize: 'var(--text-2xl)' }}>Split Cost — Pre-Auth Route</h1>
               <span className="badge badge-primary">Flow A</span>
             </div>
 
@@ -544,7 +562,7 @@ function SplitPreAuthCheckout() {
                   border: '1px solid rgba(124, 58, 237, 0.2)',
                 }}
               >
-                KYC requirement: {KYC_TIERS[requiredKycTier].name} (demo rule)
+                KYC requirement: {KYC_TIERS[requiredKycTier]?.name || requiredKycTier} (demo rule)
               </span>
 
               <span className="badge badge-emerald">
@@ -562,13 +580,12 @@ function SplitPreAuthCheckout() {
                   background: 'var(--glass-bg)',
                 }}
               >
-                <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-secondary)' }}>
-                  People
-                </span>
+                <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-secondary)' }}>People</span>
                 <button
                   className="btn btn-ghost"
                   style={{ width: 30, height: 30, padding: 0 }}
                   onClick={() => setPeopleCountOverride((v) => Math.max(1, v - 1))}
+                  type="button"
                 >
                   -
                 </button>
@@ -579,15 +596,21 @@ function SplitPreAuthCheckout() {
                   className="btn btn-ghost"
                   style={{ width: 30, height: 30, padding: 0 }}
                   onClick={() => setPeopleCountOverride((v) => v + 1)}
+                  type="button"
                 >
                   +
                 </button>
               </div>
             </div>
+
+            <div style={{ marginTop: 12, fontSize: 10, color: 'var(--text-muted)' }}>
+              (prototype totals) totalTripAmount: ₹{totalTripAmount.toLocaleString('en-IN')}
+            </div>
           </div>
         </div>
       </div>
 
+      {/* Authorization window expiry */}
       <AnimatePresence>
         {expired && !quorumSatisfied && (
           <motion.div
@@ -600,9 +623,7 @@ function SplitPreAuthCheckout() {
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <AlertTriangle size={18} color="var(--accent-coral)" />
               <div>
-                <div style={{ fontWeight: 800, color: 'var(--accent-coral)' }}>
-                  Authorization window expired
-                </div>
+                <div style={{ fontWeight: 800, color: 'var(--accent-coral)' }}>Authorization window expired</div>
                 <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>
                   Use “Save the Trip” to cover remaining balance and keep booking from collapsing.
                 </div>
@@ -612,26 +633,25 @@ function SplitPreAuthCheckout() {
             <div style={{ marginTop: 12, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
               <motion.button
                 className="btn btn-primary"
-                onClick={() => saveTheTrip()}
+                onClick={saveTheTrip}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 style={{ flex: '1 1 220px' }}
+                type="button"
               >
-                Save the Trip (Cover Remaining)
-                <ArrowRight size={18} />
+                Save the Trip (Cover Remaining) <ArrowRight size={18} />
               </motion.button>
+
               <motion.button
                 className="btn btn-ghost"
                 onClick={() => {
                   setExpired(false);
-                  dispatch({
-                    type: 'SET_PRE_AUTH',
-                    payload: { userId: currentUser.id, status: 'authorized' },
-                  });
+                  dispatch({ type: 'SET_PRE_AUTH', payload: { userId: currentUser.id, status: 'authorized' } });
                 }}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 style={{ flex: '1 1 180px' }}
+                type="button"
               >
                 Retry & Authorize
               </motion.button>
@@ -640,19 +660,15 @@ function SplitPreAuthCheckout() {
         )}
       </AnimatePresence>
 
-      {/* Claims + Amount */}
+      {/* Segment claiming + trackers */}
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.35 }}
         style={{ padding: 16, marginBottom: 'var(--space-lg)' }}
       >
-        <h3 style={{ margin: 0, fontSize: 'var(--text-lg)', fontFamily: 'var(--font-heading)' }}>
-          Segment Claiming (Room / Sub-expense)
-        </h3>
-        <p className="page-subtitle" style={{ marginTop: 6 }}>
-          Members can claim room segments before the final split amount is computed.
-        </p>
+        <h3 style={{ margin: 0, fontSize: 'var(--text-lg)', fontFamily: 'var(--font-heading)' }}>Segment Claiming (Room / Sub-expense)</h3>
+        <p className="page-subtitle" style={{ marginTop: 6 }}>Members can claim room segments before the final split amount is computed.</p>
         <div className="divider" style={{ margin: '14px 0' }} />
         <RoomClaiming destination={itinerary} />
         <div className="divider" style={{ margin: '14px 0' }} />
@@ -660,23 +676,17 @@ function SplitPreAuthCheckout() {
         <PeerAccountabilityTracker />
         <ComparePackagesTable />
 
-        <TripReceiptAccordion
-          destination={itinerary}
-          roomClaims={state.roomClaims}
-          peopleCount={paidByPeopleCount}
-        />
+        <TripReceiptAccordion destination={itinerary} roomClaims={state.roomClaims} peopleCount={paidByPeopleCount} />
       </motion.div>
 
-      {/* Authorizations */}
+      {/* Member pre-auth cards */}
       <div className="glass-card" style={{ padding: 16, marginBottom: 'var(--space-lg)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 14, alignItems: 'center' }}>
           <div>
             <h3 style={{ margin: 0, fontSize: 'var(--text-lg)', fontFamily: 'var(--font-heading)' }}>
               Member Pre-Authorization Mandates
             </h3>
-            <p className="page-subtitle" style={{ marginTop: 6 }}>
-              Capture UPI / mandate authorization from all required payers.
-            </p>
+            <p className="page-subtitle" style={{ marginTop: 6 }}>Capture UPI / mandate authorization from all required payers.</p>
           </div>
           <span className="badge badge-primary">UPI Pre-Auth (Prototype)</span>
         </div>
@@ -710,10 +720,21 @@ function SplitPreAuthCheckout() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <div
                     className="avatar avatar-sm"
-                    style={{ background: m.color, fontSize: 9, border: '2px solid var(--bg-primary)', width: 34, height: 34 }}
+                    style={{
+                      background: m.color,
+                      fontSize: 9,
+                      border: '2px solid var(--bg-primary)',
+                      width: 34,
+                      height: 34,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      borderRadius: 'var(--radius-sm)',
+                    }}
                   >
                     {m.avatar}
                   </div>
+
                   <div>
                     <div style={{ fontSize: 13, fontWeight: 800 }}>
                       {m.name}
@@ -724,7 +745,8 @@ function SplitPreAuthCheckout() {
                       )}
                     </div>
                     <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
-                      Status: {status === 'authorized' ? 'Authorized' : status === 'declined' ? 'Declined' : 'Pending'}
+                      Status:{' '}
+                      {status === 'authorized' ? 'Authorized' : status === 'declined' ? 'Declined' : 'Pending'}
                     </div>
                   </div>
                 </div>
@@ -742,9 +764,11 @@ function SplitPreAuthCheckout() {
                         disabled={!canToggle}
                         onClick={() => setMemberDeclined(m.id)}
                         whileTap={{ scale: 0.98 }}
+                        type="button"
                       >
                         Decline
                       </motion.button>
+
                       <motion.button
                         className="btn btn-primary"
                         style={{ padding: '10px 12px' }}
@@ -752,6 +776,7 @@ function SplitPreAuthCheckout() {
                         onClick={() => setMemberAuthorized(m.id)}
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
+                        type="button"
                       >
                         Authorize
                       </motion.button>
@@ -774,9 +799,9 @@ function SplitPreAuthCheckout() {
             onClick={tryCompletePayment}
             whileHover={{ scale: 1.01 }}
             whileTap={{ scale: 0.99 }}
+            type="button"
           >
-            Execute Booking (Quorum Reached)
-            <ArrowRight size={18} />
+            Execute Booking (Quorum Reached) <ArrowRight size={18} />
           </motion.button>
 
           <motion.button
@@ -785,6 +810,7 @@ function SplitPreAuthCheckout() {
             whileHover={{ scale: 1.01 }}
             whileTap={{ scale: 0.99 }}
             style={{ flex: '1 1 220px' }}
+            type="button"
           >
             {leaderOverride ? 'Leader override: ON' : 'Leader override: OFF'}
           </motion.button>
@@ -797,7 +823,7 @@ function SplitPreAuthCheckout() {
         )}
       </div>
 
-      {/* Save the Trip CTA (always visible; gated by leader override in prototype) */}
+      {/* Save the trip CTA */}
       <div className="glass-card" style={{ padding: 16, marginTop: 'var(--space-lg)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <AlertTriangle size={18} color="var(--accent-amber)" />
@@ -809,6 +835,7 @@ function SplitPreAuthCheckout() {
                 : 'If any member fails to authorize, leader override lets one user cover the remaining balance.'}
             </div>
           </div>
+
           <span className="badge badge-amber" style={{ fontSize: 11, padding: '6px 10px', opacity: 0.95 }}>
             Leader override: {leaderOverride ? 'ON' : 'OFF'}
           </span>
@@ -825,9 +852,9 @@ function SplitPreAuthCheckout() {
             }}
             whileHover={{ scale: 1.01 }}
             whileTap={{ scale: 0.99 }}
+            type="button"
           >
-            Save the Trip (Leader Cover)
-            <ArrowRight size={18} />
+            Save the Trip (Leader Cover) <ArrowRight size={18} />
           </motion.button>
 
           {!leaderOverride && (
@@ -838,7 +865,7 @@ function SplitPreAuthCheckout() {
         </div>
       </div>
 
-      {/* Sticky bottom confirmation bar (single high-priority action) */}
+      {/* Sticky bottom action */}
       {pgStage === 'pre' && (
         <div className="sticky-checkout-bar">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
@@ -848,6 +875,7 @@ function SplitPreAuthCheckout() {
                 Quorum: {quorumSatisfiedCount}/{quorumMemberCount}
               </div>
             </div>
+
             <motion.button
               className="btn btn-emerald"
               style={{ padding: '12px 16px', minWidth: 160 }}
@@ -855,9 +883,9 @@ function SplitPreAuthCheckout() {
               onClick={tryCompletePayment}
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.99 }}
+              type="button"
             >
-              Execute booking
-              <ArrowRight size={18} />
+              Execute booking <ArrowRight size={18} />
             </motion.button>
           </div>
         </div>
@@ -872,6 +900,7 @@ function SplitPreAuthCheckout() {
                 ₹{individualTotal.toLocaleString('en-IN')}
               </div>
             </div>
+
             <motion.button
               className="btn btn-primary"
               style={{ padding: '12px 16px', minWidth: 160 }}
@@ -879,9 +908,9 @@ function SplitPreAuthCheckout() {
               onClick={authorizeMyShare}
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.99 }}
+              type="button"
             >
-              Authorize my share
-              <ArrowRight size={18} />
+              Authorize my share <ArrowRight size={18} />
             </motion.button>
           </div>
         </div>
@@ -895,11 +924,6 @@ export default function Checkout() {
   const itinerary = state.lockedItinerary || DESTINATIONS[0];
   const memberCount = state.groupMembers?.length || 6;
 
-  const estimatedTotal = Math.round(itinerary.pricePerPerson * memberCount * 1.12 + 499); // include GST-ish + platform fee
-
-  // Tiered KYC / progressive friction model (prototype heuristic):
-  // - Lite KYC for small transactions (under ₹10k) => treat as single payer route
-  // - Full KYC trigger for large, multi-family group pre-auths above regulatory thresholds => Flow A
   const perPerson = itinerary.pricePerPerson;
   const shouldUseSplitPreAuth = perPerson > LITE_KYC_LIMIT && memberCount >= 4;
 
@@ -913,7 +937,7 @@ export default function Checkout() {
           </h1>
         </div>
         <p className="page-subtitle">
-          {itinerary.name} • {memberCount} members
+          {itinerary?.name || 'Trip'} • {memberCount} members
         </p>
       </div>
 
@@ -924,227 +948,12 @@ export default function Checkout() {
           </motion.div>
         ) : (
           <motion.div key="flowB" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
-            {/* Flow B should still show refund banner transparency */}
             <RefundBanner />
             <SinglePayerCheckout />
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Tiny footer note */}
-      <div style={{ marginTop: 18, textAlign: 'center', color: 'var(--text-muted)', fontSize: 11 }}>
-        Prototype only — integrations (UPI SDK / KYC API / booking aggregator) are mocked.
-      </div>
-    </div>
-  );
-}
-                    </div>
-                  </div>
-                </div>
-
-                <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-                  {status === 'authorized' ? (
-                    <span className="badge badge-emerald" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <Check size={12} /> Done
-                    </span>
-                  ) : (
-                    <>
-                      <motion.button
-                        className="btn btn-ghost"
-                        style={{ padding: '10px 12px' }}
-                        disabled={!canToggle}
-                        onClick={() => setMemberDeclined(m.id)}
-                        whileTap={{ scale: 0.98 }}
-                      >
-                        Decline
-                      </motion.button>
-                      <motion.button
-                        className="btn btn-primary"
-                        style={{ padding: '10px 12px' }}
-                        disabled={!canToggle}
-                        onClick={() => setMemberAuthorized(m.id)}
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                      >
-                        Authorize
-                      </motion.button>
-                    </>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        <div style={{ marginTop: 16, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-          <motion.button
-            className="btn btn-emerald btn-lg btn-full"
-            disabled={!quorumSatisfied || expired}
-            style={{
-              opacity: !quorumSatisfied || expired ? 0.6 : 1,
-              pointerEvents: !quorumSatisfied || expired ? 'none' : 'auto',
-            }}
-            onClick={tryCompletePayment}
-            whileHover={{ scale: 1.01 }}
-            whileTap={{ scale: 0.99 }}
-          >
-            Execute Booking (Quorum Reached)
-            <ArrowRight size={18} />
-          </motion.button>
-
-          <motion.button
-            className="btn btn-ghost btn-full"
-            onClick={() => setLeaderOverride((v) => !v)}
-            whileHover={{ scale: 1.01 }}
-            whileTap={{ scale: 0.99 }}
-            style={{ flex: '1 1 220px' }}
-          >
-            {leaderOverride ? 'Leader override: ON' : 'Leader override: OFF'}
-          </motion.button>
-        </div>
-
-        {leaderOverride && (
-          <div style={{ marginTop: 14, fontSize: 12, color: 'var(--text-secondary)' }}>
-            Prototype mode: leader override enables “Save the Trip” even if quorum isn’t 100% yet.
-          </div>
-        )}
-      </div>
-
-      {/* Save the Trip CTA (always visible; gated by leader override in prototype) */}
-      <div className="glass-card" style={{ padding: 16, marginTop: 'var(--space-lg)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <AlertTriangle size={18} color="var(--accent-amber)" />
-          <div style={{ flex: 1 }}>
-            <div style={{ fontWeight: 900, color: 'var(--accent-amber)' }}>Prevent booking collapse</div>
-            <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>
-              {quorumSatisfied
-                ? 'Quorum is satisfied — you can still proceed with booking.'
-                : 'If any member fails to authorize, leader override lets one user cover the remaining balance.'}
-            </div>
-          </div>
-          <span className="badge badge-amber" style={{ fontSize: 11, padding: '6px 10px', opacity: 0.95 }}>
-            Leader override: {leaderOverride ? 'ON' : 'OFF'}
-          </span>
-        </div>
-
-        <div style={{ marginTop: 12 }}>
-          <motion.button
-            className="btn btn-primary btn-full btn-lg"
-            onClick={saveTheTrip}
-            disabled={!leaderOverride}
-            style={{
-              opacity: leaderOverride ? 1 : 0.6,
-              pointerEvents: leaderOverride ? 'auto' : 'none',
-            }}
-            whileHover={{ scale: 1.01 }}
-            whileTap={{ scale: 0.99 }}
-          >
-            Save the Trip (Leader Cover)
-            <ArrowRight size={18} />
-          </motion.button>
-
-          {!leaderOverride && (
-            <div style={{ marginTop: 8, fontSize: 11, color: 'var(--text-muted)' }}>
-              Turn on “Leader override” to activate Save the Trip in this prototype.
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Sticky bottom confirmation bar (single high-priority action) */}
-      {pgStage === 'pre' && (
-        <div className="sticky-checkout-bar">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 11, color: 'var(--text-secondary)', fontWeight: 700 }}>Ready when quorum hits 100%</div>
-              <div style={{ fontSize: 13, color: 'var(--text-primary)', fontWeight: 900 }}>
-                Quorum: {quorumSatisfiedCount}/{quorumMemberCount}
-              </div>
-            </div>
-            <motion.button
-              className="btn btn-emerald"
-              style={{ padding: '12px 16px', minWidth: 160 }}
-              disabled={!quorumSatisfied || expired}
-              onClick={tryCompletePayment}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.99 }}
-            >
-              Execute booking
-              <ArrowRight size={18} />
-            </motion.button>
-          </div>
-        </div>
-      )}
-
-      {pgStage === 'sunkCost' && (
-        <div className="sticky-checkout-bar">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 11, color: 'var(--text-secondary)', fontWeight: 700 }}>Your exact total</div>
-              <div style={{ fontSize: 16, color: 'var(--accent-emerald)', fontWeight: 900 }}>
-                ₹{individualTotal.toLocaleString('en-IN')}
-              </div>
-            </div>
-            <motion.button
-              className="btn btn-primary"
-              style={{ padding: '12px 16px', minWidth: 160 }}
-              disabled={!sunkCostAccepted}
-              onClick={authorizeMyShare}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.99 }}
-            >
-              Authorize my share
-              <ArrowRight size={18} />
-            </motion.button>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-export default function Checkout() {
-  const { state } = useApp();
-  const itinerary = state.lockedItinerary || DESTINATIONS[0];
-  const memberCount = state.groupMembers?.length || 6;
-
-  const estimatedTotal = Math.round(itinerary.pricePerPerson * memberCount * 1.12 + 499); // include GST-ish + platform fee
-
-  // Tiered KYC / progressive friction model (prototype heuristic):
-  // - Lite KYC for small transactions (under ₹10k) => treat as single payer route
-  // - Full KYC trigger for large, multi-family group pre-auths above regulatory thresholds => Flow A
-  const perPerson = itinerary.pricePerPerson;
-  const shouldUseSplitPreAuth = perPerson > LITE_KYC_LIMIT && memberCount >= 4;
-
-  return (
-    <div className="page">
-      <div className="page-header" style={{ marginBottom: 'var(--space-lg)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <Sparkles size={22} color="var(--accent-secondary)" />
-          <h1 className="page-title text-gradient" style={{ fontSize: 'var(--text-2xl)' }}>
-            Checkout
-          </h1>
-        </div>
-        <p className="page-subtitle">
-          {itinerary.name} • {memberCount} members
-        </p>
-      </div>
-
-      <AnimatePresence mode="wait">
-        {shouldUseSplitPreAuth ? (
-          <motion.div key="flowA" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
-            <SplitPreAuthCheckout />
-          </motion.div>
-        ) : (
-          <motion.div key="flowB" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
-            {/* Flow B should still show refund banner transparency */}
-            <RefundBanner />
-            <SinglePayerCheckout />
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Tiny footer note */}
       <div style={{ marginTop: 18, textAlign: 'center', color: 'var(--text-muted)', fontSize: 11 }}>
         Prototype only — integrations (UPI SDK / KYC API / booking aggregator) are mocked.
       </div>
