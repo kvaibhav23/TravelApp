@@ -173,12 +173,13 @@ function PackageAdCard({ ad, index, navigateTo }) {
     <motion.div
       className="glass-card"
       style={{
-        padding: '12px 12px',
+        padding: 0,
         minWidth: 300,
         maxWidth: 340,
         scrollSnapAlign: 'start',
         border: '1px solid var(--glass-border)',
         background: 'linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01))',
+        overflow: 'hidden',
       }}
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
@@ -190,11 +191,11 @@ function PackageAdCard({ ad, index, navigateTo }) {
         style={{
           width: '100%',
           height: 105,
-          borderRadius: 12,
+          borderRadius: 0,
           overflow: 'hidden',
-          border: '1px solid rgba(255,255,255,0.06)',
+          border: 'none',
           background: 'rgba(255,255,255,0.02)',
-          marginBottom: 10,
+          marginBottom: 0,
           position: 'relative',
         }}
       >
@@ -244,11 +245,12 @@ function PackageAdCard({ ad, index, navigateTo }) {
         </div>
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
-        <div style={{ minWidth: 0 }}>
-          <div style={{ fontSize: 11, color: 'var(--text-secondary)', fontWeight: 800, marginBottom: 4 }}>
-            {ad.offerTag}
-          </div>
+      <div style={{ padding: '12px 12px' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: 11, color: 'var(--text-secondary)', fontWeight: 800, marginBottom: 4 }}>
+              {ad.offerTag}
+            </div>
 
           <div style={{ fontSize: 14, fontWeight: 900, fontFamily: 'var(--font-heading)', marginBottom: 3 }}>
             {ad.title}
@@ -274,18 +276,19 @@ function PackageAdCard({ ad, index, navigateTo }) {
         </div>
       </div>
 
-      {/* Reduced spacing: removed “Book in 2 mins” meta row to prevent extra bottom space */}
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 10 }}>
-        <motion.button
-          className="btn btn-ghost"
-          style={{ padding: '8px 10px' }}
-          onClick={() => ad.route ? navigateTo(ad.route) : undefined}
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-        >
-          View
-          <ArrowRight size={16} />
-        </motion.button>
+        {/* Reduced spacing: removed “Book in 2 mins” meta row to prevent extra bottom space */}
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 10 }}>
+          <motion.button
+            className="btn btn-ghost"
+            style={{ padding: '8px 10px' }}
+            onClick={() => ad.route ? navigateTo(ad.route) : undefined}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+          >
+            View
+            <ArrowRight size={16} />
+          </motion.button>
+        </div>
       </div>
     </motion.div>
   );
@@ -341,53 +344,244 @@ function Home() {
   }, []);
 
   return (
-    <div className="page">
+    <div className="page home-prof">
       <motion.div variants={containerVariants} initial="hidden" animate="visible">
-        {/* ─── Hero Section ─── */}
-        <motion.div variants={itemVariants} className="page-header" style={{ paddingBottom: 0 }}>
+        {/* ─── Top trip type bar (professional header) ─── */}
+        <motion.div
+          variants={itemVariants}
+          style={{
+            position: 'sticky',
+            top: 0,
+            zIndex: 5,
+            background: '#ffffff',
+            paddingTop: 10,
+            paddingBottom: 10,
+          }}
+        >
           <div
             style={{
               display: 'flex',
+              alignItems: 'center',
               justifyContent: 'space-between',
-              alignItems: 'flex-start',
+              gap: 12,
+              padding: '0 var(--space-md)',
             }}
           >
-            <div>
-              <motion.h1
-                className="page-title text-gradient"
-                style={{ fontSize: 'var(--text-3xl)', lineHeight: 1.2 }}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] }}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div
+                style={{
+                  width: 38,
+                  height: 38,
+                  borderRadius: 12,
+                  background: 'rgba(124,58,237,0.10)',
+                  border: '1px solid rgba(124,58,237,0.20)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#5b21b6',
+                  fontWeight: 900,
+                }}
               >
-                Welcome back, {currentUser.name.split(' ')[0]}
-              </motion.h1>
-              <motion.p
-                className="page-subtitle"
-                style={{ marginTop: 6 }}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.3, duration: 0.5 }}
-              >
-                Your next adventure awaits ✨
-              </motion.p>
+                MW
+              </div>
+              <div>
+                <div style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 700 }}>WanderZ</div>
+                <div style={{ fontSize: 18, fontWeight: 900, fontFamily: 'var(--font-heading)' }}>
+                  Plan smarter
+                </div>
+              </div>
             </div>
+
             {/* User avatar */}
             <motion.div
               className="avatar"
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
-              transition={{ delay: 0.2, type: 'spring', stiffness: 260, damping: 20 }}
+              transition={{ delay: 0.1, type: 'spring', stiffness: 260, damping: 20 }}
               style={{
                 background: currentUser.color,
                 fontSize: 'var(--text-sm)',
-                width: 44,
-                height: 44,
+                width: 40,
+                height: 40,
                 boxShadow: `0 0 16px ${currentUser.color}44`,
               }}
             >
               {currentUser.avatar}
             </motion.div>
+          </div>
+
+          <div style={{ padding: '10px var(--space-md) 0 var(--space-md)' }}>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr 1fr',
+                gap: 10,
+              }}
+            >
+              <motion.button
+                className="glass-card"
+                whileHover={{ scale: 1.01 }}
+                whileTap={{ scale: 0.99 }}
+                onClick={() => navigate('/onboarding')}
+                style={{
+                  padding: 12,
+                  borderRadius: 14,
+                  background: 'rgba(124,58,237,0.06)',
+                  border: '1px solid rgba(124,58,237,0.18)',
+                  fontWeight: 900,
+                  color: '#4c1d95',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 8,
+                }}
+              >
+                <Plus size={16} />
+                New Trip
+              </motion.button>
+
+              <motion.button
+                className="glass-card"
+                whileHover={{ scale: 1.01 }}
+                whileTap={{ scale: 0.99 }}
+                onClick={() => navigate('/vote')}
+                style={{
+                  padding: 12,
+                  borderRadius: 14,
+                  background: 'rgba(16,185,129,0.06)',
+                  border: '1px solid rgba(16,185,129,0.18)',
+                  fontWeight: 900,
+                  color: '#047857',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 8,
+                }}
+              >
+                <ThumbsUp size={16} />
+                Group Trip
+              </motion.button>
+
+              <motion.button
+                className="glass-card"
+                whileHover={{ scale: 1.01 }}
+                whileTap={{ scale: 0.99 }}
+                onClick={() => setShowJoinModal(true)}
+                style={{
+                  padding: 12,
+                  borderRadius: 14,
+                  background: 'rgba(6,182,212,0.06)',
+                  border: '1px solid rgba(6,182,212,0.18)',
+                  fontWeight: 900,
+                  color: '#0891b2',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 8,
+                }}
+              >
+                <UserPlus size={16} />
+                Join Trip
+              </motion.button>
+            </div>
+
+            {/* From → To + basic controls */}
+            <div
+              style={{
+                marginTop: 12,
+                background: '#ffffff',
+                border: '1px solid rgba(15,23,42,0.10)',
+                borderRadius: 18,
+                padding: 12,
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr 1fr 1fr auto',
+                gap: 10,
+                alignItems: 'center',
+              }}
+            >
+              <div>
+                <div style={{ fontSize: 10, fontWeight: 900, color: 'var(--text-muted)' }}>FROM</div>
+                <select
+                  style={{
+                    width: '100%',
+                    marginTop: 6,
+                    padding: '10px 12px',
+                    borderRadius: 14,
+                    border: '1px solid rgba(15,23,42,0.12)',
+                    background: 'rgba(255,255,255,0.9)',
+                    color: '#0f172a',
+                    fontWeight: 800,
+                  }}
+                  value={DESTINATIONS[0]?.name || 'Delhi'}
+                  onChange={() => {}}
+                  disabled
+                  aria-label="From City (demo)"
+                >
+                  <option>{DESTINATIONS[0]?.name || 'Delhi'}</option>
+                </select>
+              </div>
+
+              <div>
+                <div style={{ fontSize: 10, fontWeight: 900, color: 'var(--text-muted)' }}>TO</div>
+                <select
+                  style={{
+                    width: '100%',
+                    marginTop: 6,
+                    padding: '10px 12px',
+                    borderRadius: 14,
+                    border: '1px solid rgba(15,23,42,0.12)',
+                    background: 'rgba(255,255,255,0.9)',
+                    color: '#0f172a',
+                    fontWeight: 800,
+                  }}
+                  value={DESTINATIONS[1]?.name || 'Goa'}
+                  onChange={() => {}}
+                  disabled
+                  aria-label="To City (demo)"
+                >
+                  <option>{DESTINATIONS[1]?.name || 'Goa'}</option>
+                </select>
+              </div>
+
+              <div>
+                <div style={{ fontSize: 10, fontWeight: 900, color: 'var(--text-muted)' }}>DEPARTURE</div>
+                <input
+                  style={{
+                    width: '100%',
+                    marginTop: 6,
+                    padding: '10px 12px',
+                    borderRadius: 14,
+                    border: '1px solid rgba(15,23,42,0.12)',
+                    background: 'rgba(255,255,255,0.9)',
+                    color: '#0f172a',
+                    fontWeight: 800,
+                  }}
+                  value="Aug 14, 2025"
+                  readOnly
+                />
+              </div>
+
+              <div>
+                <div style={{ fontSize: 10, fontWeight: 900, color: 'var(--text-muted)' }}>ROOMS & GUESTS</div>
+                <div style={{ marginTop: 6, fontWeight: 900, color: '#0f172a' }}>2 rooms • 6 guests</div>
+              </div>
+
+              <button
+                className="btn btn-primary"
+                style={{
+                  marginTop: 18,
+                  padding: '14px 18px',
+                  borderRadius: 16,
+                  fontWeight: 950,
+                  letterSpacing: 0.2,
+                  whiteSpace: 'nowrap',
+                }}
+                onClick={() => navigate('/vote')}
+              >
+                Search
+                <ArrowRight size={18} />
+              </button>
+            </div>
           </div>
         </motion.div>
 
@@ -405,6 +599,7 @@ function Home() {
               alignItems: 'center',
               marginBottom: 'var(--space-md)',
               gap: 12,
+              padding: '0 var(--space-md)',
             }}
           >
             <h3
@@ -413,12 +608,21 @@ function Home() {
                 fontWeight: 700,
                 fontFamily: 'var(--font-heading)',
                 margin: 0,
+                color: '#0f172a',
               }}
             >
               Travel Deals
             </h3>
 
-            <span className="badge badge-primary" style={{ fontSize: 11 }}>
+            <span
+              className="badge badge-primary"
+              style={{
+                fontSize: 11,
+                background: 'rgba(124,58,237,0.10)',
+                border: '1px solid rgba(124,58,237,0.20)',
+                color: '#4c1d95',
+              }}
+            >
               Swipe for offers
             </span>
           </div>
@@ -428,7 +632,7 @@ function Home() {
               display: 'flex',
               gap: 12,
               overflowX: 'auto',
-              paddingBottom: 8,
+              padding: '0 var(--space-md) 8px var(--space-md)',
               WebkitOverflowScrolling: 'touch',
               scrollSnapType: 'x mandatory',
             }}
@@ -438,7 +642,15 @@ function Home() {
             ))}
           </motion.div>
 
-          <div style={{ marginTop: 10, color: 'var(--text-muted)', fontSize: 11, lineHeight: 1.4 }}>
+          <div
+            style={{
+              marginTop: 10,
+              color: 'var(--text-muted)',
+              fontSize: 11,
+              lineHeight: 1.4,
+              padding: '0 var(--space-md)',
+            }}
+          >
             OTA-style demo: deals show comparison price + savings, without overwhelming the user.
           </div>
         </motion.div>
@@ -451,6 +663,7 @@ function Home() {
               justifyContent: 'space-between',
               alignItems: 'center',
               marginBottom: 'var(--space-md)',
+              padding: '0 var(--space-md)',
             }}
           >
             <h3
@@ -458,11 +671,22 @@ function Home() {
                 fontSize: 'var(--text-lg)',
                 fontWeight: 700,
                 fontFamily: 'var(--font-heading)',
+                color: '#0f172a',
               }}
             >
               Active Trips
             </h3>
-            <span className="badge badge-primary">1 active</span>
+            <span
+              className="badge badge-primary"
+              style={{
+                fontSize: 11,
+                background: 'rgba(124,58,237,0.10)',
+                border: '1px solid rgba(124,58,237,0.20)',
+                color: '#4c1d95',
+              }}
+            >
+              1 active
+            </span>
           </div>
 
           {/* Trip Card */}
