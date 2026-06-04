@@ -435,6 +435,8 @@ function Home() {
   const [inviteCode, setInviteCode] = useState('');
 
   const [departureDate, setDepartureDate] = useState('2025-08-14');
+  const [roomsCount, setRoomsCount] = useState(2);
+  const [guestsCount, setGuestsCount] = useState(6);
 
   const { currentUser, activeTrip, groupMembers } = state;
 
@@ -665,7 +667,49 @@ function Home() {
 
             <div>
               <div style={{ fontSize: 10, fontWeight: 900, color: 'var(--text-muted)' }}>ROOMS & GUESTS</div>
-              <div style={{ marginTop: 6, fontWeight: 900, color: '#0f172a' }}>2 rooms • 6 guests</div>
+
+              <div style={{ marginTop: 6, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                <input
+                  type="number"
+                  min={1}
+                  max={10}
+                  value={roomsCount}
+                  onChange={(e) => setRoomsCount(Math.max(1, Math.min(10, Number(e.target.value) || 1)))}
+                  aria-label="Rooms"
+                  style={{
+                    width: '100%',
+                    padding: '10px 10px',
+                    borderRadius: 14,
+                    border: '1px solid rgba(15,23,42,0.12)',
+                    background: 'rgba(255,255,255,0.9)',
+                    color: '#0f172a',
+                    fontWeight: 900,
+                    outline: 'none',
+                  }}
+                />
+                <input
+                  type="number"
+                  min={1}
+                  max={20}
+                  value={guestsCount}
+                  onChange={(e) => setGuestsCount(Math.max(1, Math.min(20, Number(e.target.value) || 1)))}
+                  aria-label="Guests"
+                  style={{
+                    width: '100%',
+                    padding: '10px 10px',
+                    borderRadius: 14,
+                    border: '1px solid rgba(15,23,42,0.12)',
+                    background: 'rgba(255,255,255,0.9)',
+                    color: '#0f172a',
+                    fontWeight: 900,
+                    outline: 'none',
+                  }}
+                />
+              </div>
+
+              <div style={{ marginTop: 6, fontSize: 10, fontWeight: 800, color: '#0f172a', opacity: 0.85 }}>
+                {roomsCount} room{roomsCount === 1 ? '' : 's'} • {guestsCount} guest{guestsCount === 1 ? '' : 's'}
+              </div>
             </div>
 
             <button
@@ -679,7 +723,7 @@ function Home() {
               }}
               onClick={() =>
                 navigate(
-                  `/vote?from=${encodeURIComponent(fromDest?.name || '')}&to=${encodeURIComponent(toDest?.name || '')}&departure=${encodeURIComponent(departureDate)}`
+                  `/vote?from=${encodeURIComponent(fromDest?.name || '')}&to=${encodeURIComponent(toDest?.name || '')}&departure=${encodeURIComponent(departureDate)}&rooms=${roomsCount}&guests=${guestsCount}`
                 )
               }
             >
