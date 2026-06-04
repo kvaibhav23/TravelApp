@@ -45,7 +45,7 @@ const ROLES = [
   {
     id: 'corporate',
     emoji: '💼',
-    label: 'Corporate Admin',
+    label: 'Corporate travel/Field Trip',
     description: 'Manage team off-sites, GST invoicing & expense reports',
     gradient: 'linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%)',
     icon: Briefcase,
