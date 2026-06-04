@@ -434,6 +434,8 @@ function Home() {
   const [showJoinModal, setShowJoinModal] = useState(false);
   const [inviteCode, setInviteCode] = useState('');
 
+  const [departureDate, setDepartureDate] = useState('2025-08-14');
+
   const { currentUser, activeTrip, groupMembers } = state;
 
   const PACKAGE_ADS = useMemo(() => {
@@ -484,7 +486,7 @@ function Home() {
         <motion.div
           variants={itemVariants}
           style={{
-            position: 'sticky',
+            position: 'relative',
             top: 0,
             zIndex: 5,
             background: '#ffffff',
@@ -619,66 +621,73 @@ function Home() {
               </motion.button>
             </div>
 
-            {/* From → To + basic controls */}
-            <div className="home-search-row">
-              <div className="home-search-grid">
-                <DestinationSearchField
-                  label="FROM"
-                  placeholder="From city"
-                  selected={fromDest}
-                  onSelect={setFromDest}
-                  destinations={DESTINATIONS}
-                />
-
-                <DestinationSearchField
-                  label="TO"
-                  placeholder="To city"
-                  selected={toDest}
-                  onSelect={setToDest}
-                  destinations={DESTINATIONS}
-                />
-
-                <div>
-                  <div style={{ fontSize: 10, fontWeight: 900, color: 'var(--text-muted)' }}>DEPARTURE</div>
-                  <input
-                    style={{
-                      width: '100%',
-                      marginTop: 6,
-                      padding: '10px 12px',
-                      borderRadius: 14,
-                      border: '1px solid rgba(15,23,42,0.12)',
-                      background: 'rgba(255,255,255,0.9)',
-                      color: '#0f172a',
-                      fontWeight: 800,
-                    }}
-                    value="Aug 14, 2025"
-                    readOnly
-                  />
-                </div>
-
-                <div>
-                  <div style={{ fontSize: 10, fontWeight: 900, color: 'var(--text-muted)' }}>ROOMS & GUESTS</div>
-                  <div style={{ marginTop: 6, fontWeight: 900, color: '#0f172a' }}>2 rooms • 6 guests</div>
-                </div>
-
-                <button
-                  className="btn btn-primary home-search-cta"
-                  style={{
-                    padding: '14px 18px',
-                    borderRadius: 16,
-                    fontWeight: 950,
-                    letterSpacing: 0.2,
-                    whiteSpace: 'nowrap',
-                  }}
-                  onClick={() => navigate(`/vote?from=${encodeURIComponent(fromDest?.name || '')}&to=${encodeURIComponent(toDest?.name || '')}`)}
-                >
-                  Search
-                  <ArrowRight size={18} />
-                </button>
-              </div>
-            </div>
           </div>
         </motion.div>
+
+        {/* From → To + basic controls (scrolls with page) */}
+        <div className="home-search-row">
+          <div className="home-search-grid">
+            <DestinationSearchField
+              label="FROM"
+              placeholder="From city"
+              selected={fromDest}
+              onSelect={setFromDest}
+              destinations={DESTINATIONS}
+            />
+
+            <DestinationSearchField
+              label="TO"
+              placeholder="To city"
+              selected={toDest}
+              onSelect={setToDest}
+              destinations={DESTINATIONS}
+            />
+
+            <div>
+              <div style={{ fontSize: 10, fontWeight: 900, color: 'var(--text-muted)' }}>DEPARTURE</div>
+              <input
+                type="date"
+                style={{
+                  width: '100%',
+                  marginTop: 6,
+                  padding: '10px 12px',
+                  borderRadius: 14,
+                  border: '1px solid rgba(15,23,42,0.12)',
+                  background: 'rgba(255,255,255,0.9)',
+                  color: '#0f172a',
+                  fontWeight: 800,
+                }}
+                value={departureDate}
+                onChange={(e) => setDepartureDate(e.target.value)}
+                aria-label="Departure date"
+              />
+            </div>
+
+            <div>
+              <div style={{ fontSize: 10, fontWeight: 900, color: 'var(--text-muted)' }}>ROOMS & GUESTS</div>
+              <div style={{ marginTop: 6, fontWeight: 900, color: '#0f172a' }}>2 rooms • 6 guests</div>
+            </div>
+
+            <button
+              className="btn btn-primary home-search-cta"
+              style={{
+                padding: '14px 18px',
+                borderRadius: 16,
+                fontWeight: 950,
+                letterSpacing: 0.2,
+                whiteSpace: 'nowrap',
+              }}
+              onClick={() =>
+                navigate(
+                  `/vote?from=${encodeURIComponent(fromDest?.name || '')}&to=${encodeURIComponent(toDest?.name || '')}&departure=${encodeURIComponent(departureDate)}`
+                )
+              }
+            >
+              Search
+              <ArrowRight size={18} />
+            </button>
+          </div>
+        </div>
 
         {/* ─── Long Weekend Detector ─── */}
         <motion.div variants={itemVariants} style={{ marginBottom: 'var(--space-lg)' }}>
