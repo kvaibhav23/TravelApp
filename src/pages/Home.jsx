@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Plus,
@@ -19,6 +19,7 @@ import { useApp } from '../context/AppContext';
 import LongWeekendDetector from '../components/LongWeekendDetector';
 import MomentumAgent from '../components/MomentumAgent';
 import { DESTINATIONS } from '../data/mockTravelData';
+
 import '../index.css';
 
 /* ───── Animation Variants ───── */
@@ -294,8 +295,141 @@ function PackageAdCard({ ad, index, navigateTo }) {
   );
 }
 
+function DestinationSearchField({
+  label,
+  placeholder,
+  selected,
+  onSelect,
+  destinations,
+}) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState(selected?.name || '');
+  const rootRef = useRef(null);
+
+  useEffect(() => {
+    setQuery(selected?.name || '');
+  }, [selected?.name]);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDocMouseDown = (e) => {
+      if (!rootRef.current) return;
+      if (!rootRef.current.contains(e.target)) setOpen(false);
+    };
+    document.addEventListener('mousedown', onDocMouseDown);
+    return () => document.removeEventListener('mousedown', onDocMouseDown);
+  }, [open]);
+
+  const filtered = useMemo(() => {
+    const q = (query || '').trim().toLowerCase();
+    if (!q) return destinations;
+
+    const withScore = destinations
+      .map((d) => {
+        const name = (d.name || '').toLowerCase();
+        const includes = name.includes(q);
+        if (!includes) return null;
+
+        const starts = name.startsWith(q);
+        const score = (starts ? 0 : 10) + (name.length - q.length);
+        return { d, score };
+      })
+      .filter(Boolean)
+      .sort((a, b) => a.score - b.score)
+      .map((x) => x.d);
+
+    return withScore.slice(0, 8);
+  }, [destinations, query]);
+
+  return (
+    <div ref={rootRef} style={{ position: 'relative' }}>
+      <div style={{ fontSize: 10, fontWeight: 900, color: 'var(--text-muted)' }}>{label}</div>
+
+      <input
+        value={query}
+        onFocus={() => setOpen(true)}
+        onChange={(e) => {
+          setQuery(e.target.value);
+          setOpen(true);
+        }}
+        placeholder={placeholder}
+        aria-label={label}
+        style={{
+          width: '100%',
+          marginTop: 6,
+          padding: '10px 12px',
+          borderRadius: 14,
+          border: '1px solid rgba(15,23,42,0.12)',
+          background: 'rgba(255,255,255,0.9)',
+          color: '#0f172a',
+          fontWeight: 800,
+          outline: 'none',
+        }}
+      />
+
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.15 }}
+            style={{
+              position: 'absolute',
+              left: 0,
+              right: 0,
+              top: 52,
+              zIndex: 20,
+              background: 'rgba(255,255,255,0.98)',
+              border: '1px solid rgba(15,23,42,0.10)',
+              borderRadius: 14,
+              overflow: 'hidden',
+              boxShadow: '0 16px 40px rgba(2, 6, 23, 0.10)',
+            }}
+          >
+            <div style={{ padding: '10px 12px', fontSize: 10, fontWeight: 900, color: 'var(--text-muted)' }}>
+              {filtered.length} destinations
+            </div>
+
+            <div style={{ maxHeight: 220, overflow: 'auto' }}>
+              {filtered.map((d) => (
+                <button
+                  key={d.id}
+                  type="button"
+                  onClick={() => {
+                    onSelect(d);
+                    setOpen(false);
+                  }}
+                  style={{
+                    width: '100%',
+                    textAlign: 'left',
+                    padding: '10px 12px',
+                    cursor: 'pointer',
+                    background: selected?.id === d.id ? 'rgba(124,58,237,0.10)' : 'transparent',
+                    border: 'none',
+                    borderTop: '1px solid rgba(15,23,42,0.06)',
+                    color: '#0f172a',
+                  }}
+                >
+                  <div style={{ fontSize: 12, fontWeight: 900 }}>{d.name}</div>
+                </button>
+              ))}
+            </div>
+
+            <div style={{ padding: '10px 12px', fontSize: 10, color: 'var(--text-muted)' }}>
+              Tip: type a letter (e.g., “go”)
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
 function Home() {
   const { state } = useApp();
+  const [fromDest, setFromDest] = useState(DESTINATIONS[0]);
+  const [toDest, setToDest] = useState(DESTINATIONS[1]);
   const navigate = useNavigate();
   const [showJoinModal, setShowJoinModal] = useState(false);
   const [inviteCode, setInviteCode] = useState('');
@@ -486,101 +620,62 @@ function Home() {
             </div>
 
             {/* From → To + basic controls */}
-            <div
-              style={{
-                marginTop: 12,
-                background: '#ffffff',
-                border: '1px solid rgba(15,23,42,0.10)',
-                borderRadius: 18,
-                padding: 12,
-                display: 'grid',
-                gridTemplateColumns: '1fr 1fr 1fr 1fr auto',
-                gap: 10,
-                alignItems: 'center',
-              }}
-            >
-              <div>
-                <div style={{ fontSize: 10, fontWeight: 900, color: 'var(--text-muted)' }}>FROM</div>
-                <select
-                  style={{
-                    width: '100%',
-                    marginTop: 6,
-                    padding: '10px 12px',
-                    borderRadius: 14,
-                    border: '1px solid rgba(15,23,42,0.12)',
-                    background: 'rgba(255,255,255,0.9)',
-                    color: '#0f172a',
-                    fontWeight: 800,
-                  }}
-                  value={DESTINATIONS[0]?.name || 'Delhi'}
-                  onChange={() => {}}
-                  disabled
-                  aria-label="From City (demo)"
-                >
-                  <option>{DESTINATIONS[0]?.name || 'Delhi'}</option>
-                </select>
-              </div>
-
-              <div>
-                <div style={{ fontSize: 10, fontWeight: 900, color: 'var(--text-muted)' }}>TO</div>
-                <select
-                  style={{
-                    width: '100%',
-                    marginTop: 6,
-                    padding: '10px 12px',
-                    borderRadius: 14,
-                    border: '1px solid rgba(15,23,42,0.12)',
-                    background: 'rgba(255,255,255,0.9)',
-                    color: '#0f172a',
-                    fontWeight: 800,
-                  }}
-                  value={DESTINATIONS[1]?.name || 'Goa'}
-                  onChange={() => {}}
-                  disabled
-                  aria-label="To City (demo)"
-                >
-                  <option>{DESTINATIONS[1]?.name || 'Goa'}</option>
-                </select>
-              </div>
-
-              <div>
-                <div style={{ fontSize: 10, fontWeight: 900, color: 'var(--text-muted)' }}>DEPARTURE</div>
-                <input
-                  style={{
-                    width: '100%',
-                    marginTop: 6,
-                    padding: '10px 12px',
-                    borderRadius: 14,
-                    border: '1px solid rgba(15,23,42,0.12)',
-                    background: 'rgba(255,255,255,0.9)',
-                    color: '#0f172a',
-                    fontWeight: 800,
-                  }}
-                  value="Aug 14, 2025"
-                  readOnly
+            <div className="home-search-row">
+              <div className="home-search-grid">
+                <DestinationSearchField
+                  label="FROM"
+                  placeholder="From city"
+                  selected={fromDest}
+                  onSelect={setFromDest}
+                  destinations={DESTINATIONS}
                 />
-              </div>
 
-              <div>
-                <div style={{ fontSize: 10, fontWeight: 900, color: 'var(--text-muted)' }}>ROOMS & GUESTS</div>
-                <div style={{ marginTop: 6, fontWeight: 900, color: '#0f172a' }}>2 rooms • 6 guests</div>
-              </div>
+                <DestinationSearchField
+                  label="TO"
+                  placeholder="To city"
+                  selected={toDest}
+                  onSelect={setToDest}
+                  destinations={DESTINATIONS}
+                />
 
-              <button
-                className="btn btn-primary"
-                style={{
-                  marginTop: 18,
-                  padding: '14px 18px',
-                  borderRadius: 16,
-                  fontWeight: 950,
-                  letterSpacing: 0.2,
-                  whiteSpace: 'nowrap',
-                }}
-                onClick={() => navigate('/vote')}
-              >
-                Search
-                <ArrowRight size={18} />
-              </button>
+                <div>
+                  <div style={{ fontSize: 10, fontWeight: 900, color: 'var(--text-muted)' }}>DEPARTURE</div>
+                  <input
+                    style={{
+                      width: '100%',
+                      marginTop: 6,
+                      padding: '10px 12px',
+                      borderRadius: 14,
+                      border: '1px solid rgba(15,23,42,0.12)',
+                      background: 'rgba(255,255,255,0.9)',
+                      color: '#0f172a',
+                      fontWeight: 800,
+                    }}
+                    value="Aug 14, 2025"
+                    readOnly
+                  />
+                </div>
+
+                <div>
+                  <div style={{ fontSize: 10, fontWeight: 900, color: 'var(--text-muted)' }}>ROOMS & GUESTS</div>
+                  <div style={{ marginTop: 6, fontWeight: 900, color: '#0f172a' }}>2 rooms • 6 guests</div>
+                </div>
+
+                <button
+                  className="btn btn-primary home-search-cta"
+                  style={{
+                    padding: '14px 18px',
+                    borderRadius: 16,
+                    fontWeight: 950,
+                    letterSpacing: 0.2,
+                    whiteSpace: 'nowrap',
+                  }}
+                  onClick={() => navigate(`/vote?from=${encodeURIComponent(fromDest?.name || '')}&to=${encodeURIComponent(toDest?.name || '')}`)}
+                >
+                  Search
+                  <ArrowRight size={18} />
+                </button>
+              </div>
             </div>
           </div>
         </motion.div>

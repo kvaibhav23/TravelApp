@@ -1343,6 +1343,32 @@ textarea {
   }
 }
 
+/* Home search (From/To) responsiveness */
+.home-search-row {
+  margin-top: 12px;
+  background: #ffffff;
+  border: 1px solid rgba(15, 23, 42, 0.10);
+  border-radius: 18px;
+  padding: 12px;
+}
+
+.home-search-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 1fr auto;
+  gap: 10px;
+  align-items: center;
+}
+
+@media (max-width: 440px) {
+  .home-search-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .home-search-cta {
+    width: 100%;
+  }
+}
+
 /* ---- Utility ---- */
 .flex { display: flex; }
 .flex-col { flex-direction: column; }
