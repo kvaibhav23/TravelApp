@@ -30,7 +30,7 @@ import TripReceiptAccordion from '../components/TripReceiptAccordion';
 
 import '../index.css';
 
-const PREAUTH_TIMEOUT_SECONDS = 180; // demo timer for prototype
+const PREAUTH_TIMEOUT_SECONDS = 21600; // demo timer for prototype
 const LITE_KYC_LIMIT = 10000; // ₹10k threshold per the spec
 
 function RefundBanner() {
@@ -293,13 +293,6 @@ function SplitPreAuthCheckout() {
                   onClick={() => setOptionsOpen(false)}
                   style={{ justifyContent: 'space-between', color: 'var(--text-primary)' }}
                 >
-                  Compare Packages <ArrowRight size={16} />
-                </button>
-                <button
-                  className="btn btn-ghost btn-full"
-                  onClick={() => setOptionsOpen(false)}
-                  style={{ justifyContent: 'space-between', color: 'var(--text-primary)' }}
-                >
                   Peer Accountability <ArrowRight size={16} />
                 </button>
                 <button
@@ -524,6 +517,75 @@ function SplitPreAuthCheckout() {
         </>
       )}
 
+      {/* Trip breakdown (pay section) */}
+      <div className="glass-card" style={{ padding: '16px', marginBottom: 'var(--space-lg)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'flex-start' }}>
+          <div>
+            <div style={{ fontSize: 'var(--text-sm)', fontWeight: 900, fontFamily: 'var(--font-heading)', marginBottom: 4 }}>
+              Trip — Breakdown
+            </div>
+            <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>
+              {itinerary?.name || 'Trip'} • {paidByPeopleCount} people
+            </div>
+          </div>
+
+          <span className="badge badge-emerald" style={{ fontWeight: 900 }}>
+            Total: ₹{totalTripAmount.toLocaleString('en-IN')}
+          </span>
+        </div>
+
+        <div className="divider" style={{ margin: '14px 0' }} />
+
+        {/*
+          Prototype breakdown:
+          - flights: use dest.flights.price (or fallback)
+          - hotel: dest.hotel.pricePerNight * duration (or fallback)
+          - activities: ~15% of pricePerPerson
+        */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 10 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, fontSize: 12 }}>
+            <span style={{ color: 'var(--text-secondary)', fontWeight: 700 }}>✈️ Flights</span>
+            <span style={{ color: 'var(--text-primary)', fontWeight: 900 }}>
+              ₹{(itinerary?.flights?.price || 5000).toLocaleString('en-IN')}
+            </span>
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, fontSize: 12 }}>
+            <span style={{ color: 'var(--text-secondary)', fontWeight: 700 }}>🏨 Hotel</span>
+            <span style={{ color: 'var(--text-primary)', fontWeight: 900 }}>
+              ₹{(((itinerary?.hotel?.pricePerNight || 6000) * 3) * paidByPeopleCount).toLocaleString('en-IN')}
+            </span>
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, fontSize: 12 }}>
+            <span style={{ color: 'var(--text-secondary)', fontWeight: 700 }}>🎫 Activities</span>
+            <span style={{ color: 'var(--text-primary)', fontWeight: 900 }}>
+              ₹{(Math.round(itinerary.pricePerPerson * paidByPeopleCount * 0.15)).toLocaleString('en-IN')}
+            </span>
+          </div>
+
+          <div className="divider" style={{ margin: '2px 0' }} />
+
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, fontSize: 12 }}>
+            <span style={{ color: 'var(--text-secondary)', fontWeight: 700 }}>🧾 Taxes & Fees</span>
+            <span style={{ color: 'var(--text-primary)', fontWeight: 900 }}>
+              ₹{(taxes + platformFee).toLocaleString('en-IN')}
+            </span>
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, fontSize: 12 }}>
+            <span style={{ color: 'var(--text-secondary)', fontWeight: 700 }}>Total Trip Amount</span>
+            <span style={{ color: 'var(--accent-emerald)', fontWeight: 1000 }}>
+              ₹{totalTripAmount.toLocaleString('en-IN')}
+            </span>
+          </div>
+
+          <div style={{ fontSize: 10, color: 'var(--text-muted)', lineHeight: 1.45, marginTop: 2 }}>
+            Demo breakdown for the pre-auth route. Final pricing would be confirmed at payment gateway.
+          </div>
+        </div>
+      </div>
+
       {/* Split cost + KYC + quorum header */}
       <div className="glass-card" style={{ padding: '16px', marginBottom: 'var(--space-lg)' }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
@@ -649,24 +711,6 @@ function SplitPreAuthCheckout() {
         )}
       </AnimatePresence>
 
-      {/* Segment claiming + trackers */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.35 }}
-        style={{ padding: 16, marginBottom: 'var(--space-lg)' }}
-      >
-        <h3 style={{ margin: 0, fontSize: 'var(--text-lg)', fontFamily: 'var(--font-heading)' }}>Segment Claiming (Room / Sub-expense)</h3>
-        <p className="page-subtitle" style={{ marginTop: 6 }}>Members can claim room segments before the final split amount is computed.</p>
-        <div className="divider" style={{ margin: '14px 0' }} />
-        <RoomClaiming destination={itinerary} />
-        <div className="divider" style={{ margin: '14px 0' }} />
-
-        <PeerAccountabilityTracker />
-        <ComparePackagesTable />
-
-        <TripReceiptAccordion destination={itinerary} roomClaims={state.roomClaims} peopleCount={paidByPeopleCount} />
-      </motion.div>
 
       {/* Member pre-auth cards */}
       <div className="glass-card" style={{ padding: 16, marginBottom: 'var(--space-lg)' }}>

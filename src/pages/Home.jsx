@@ -134,7 +134,15 @@ const MENU_ITEMS = [
   { id: 'plan', label: 'Start Planning', icon: Plane, route: '/start-planning' },
   { id: 'ai', label: 'AI Planner', icon: Sparkles, route: '/ai-planner' },
   { id: 'chat', label: 'Group Chat', icon: MessageCircle, route: '/chat' },
-  { id: 'payments', label: 'Payments', icon: CreditCard, route: '/checkout' },
+
+  // Split expense (prototype: route to checkout split flow)
+  { id: 'split', label: 'Split Expense', icon: CreditCard, route: '/checkout' },
+
+  // Receipt-related options
+  { id: 'receipts-scan', label: 'Scan Receipts', icon: QrCode, route: '/trip?scanner=receipts' },
+  { id: 'receipts', label: 'My Receipts', icon: QrCode, route: '/trip?tab=receipts' },
+  { id: 'gallery', label: 'Trip Gallery', icon: QrCode, route: '/trip?tab=gallery' },
+
   { id: 'trip', label: 'Active Trip', icon: MapPin, route: '/trip' },
 ];
 

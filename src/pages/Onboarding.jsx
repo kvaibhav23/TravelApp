@@ -1,14 +1,10 @@
-import { useState, useCallback } from 'react';
+import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import {
   ArrowRight,
   ArrowLeft,
-  GraduationCap,
-  Users,
-  Briefcase,
   Phone,
-  Mail,
   User,
   ShieldCheck,
   Sparkles,
@@ -17,6 +13,9 @@ import {
   ChevronDown,
   ChevronUp,
   Shield,
+  Upload,
+  Users,
+  Camera,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import '../index.css';
@@ -25,176 +24,208 @@ import '../index.css';
 
 const TOTAL_STEPS = 2;
 
-const ROLES = [
-  {
-    id: 'student',
-    emoji: '🎓',
-    label: 'Student',
-    description: 'Budget trips, hostel splits, and semester-break adventures',
-    gradient: 'linear-gradient(135deg, #7c3aed 0%, #a78bfa 100%)',
-    icon: GraduationCap,
-  },
-  {
-    id: 'family',
-    emoji: '👨‍👩‍👧‍👦',
-    label: 'Family Organizer',
-    description: 'Plan family vacations with shared itineraries & kid-friendly picks',
-    gradient: 'linear-gradient(135deg, #06b6d4 0%, #22d3ee 100%)',
-    icon: Users,
-  },
-  {
-    id: 'corporate',
-    emoji: '💼',
-    label: 'Corporate travel/Field Trip',
-    description: 'Manage team off-sites, GST invoicing & expense reports',
-    gradient: 'linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%)',
-    icon: Briefcase,
-  },
-];
-
-/* ── Slide animation variants ─────────────────────────── */
-
 const slideVariants = {
   enter: (direction) => ({
     x: direction > 0 ? 300 : -300,
     opacity: 0,
   }),
-  center: {
-    x: 0,
-    opacity: 1,
-  },
+  center: { x: 0, opacity: 1 },
   exit: (direction) => ({
     x: direction > 0 ? -300 : 300,
     opacity: 0,
   }),
 };
 
-/* ── DPDP Details ─────────────────────────────────────── */
-const DPDP_DETAILS = [
-  'Your personal data (name, phone, email) is used solely for trip planning and group coordination.',
-  'Data is processed as per the Digital Personal Data Protection Act, 2023.',
-  'You can request deletion of your data at any time from Settings.',
-  'We do not sell or share your personal data with third parties without your consent.',
-  'Trip analytics may be used to improve your recommendations (optional).',
-];
+const DPDP_CONSENT_TEXT =
+  'I agree to the Terms of Service and consent to the storage of my data for trip planning and payment processing.';
 
-/* ── Main Onboarding Component ────────────────────────── */
+const MOCK_OAUTH_AVATAR_MAP = {
+  google: 'https://placehold.co/256x256/png?text=G',
+  apple: 'https://placehold.co/256x256/png?text=A',
+};
+
+function getFirstNameAndLastInitial(fullName) {
+  const parts = fullName
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+  if (!parts.length) return { firstName: '', lastInitial: '' };
+
+  const firstName = parts[0];
+  const lastInitial = parts.length >= 2 ? (parts[parts.length - 1][0] || '').toUpperCase() : '';
+  return { firstName, lastInitial };
+}
+
+function formatMaskedPhone(phoneDigits10) {
+  // phoneDigits10 is 10 digits, group like 5 + 5
+  return phoneDigits10.replace(/(\d{5})(\d{5})/, '$1 $2');
+}
+
+function TinderAvatarStack() {
+  // Removed: replaced by simple upload/auto-assignment profile picture flow.
+  return null;
+}
+
+/* ── Main Registration Component (replaces old onboarding) ───────────── */
 
 export default function Onboarding() {
-  const { dispatch } = useApp();
+  const { dispatch, state } = useApp();
   const navigate = useNavigate();
 
   const [step, setStep] = useState(0);
   const [direction, setDirection] = useState(1);
 
-  // Step 1 — Role
-  const [selectedRole, setSelectedRole] = useState(null);
-
-  // Step 2 — Registration
-  const [name, setName] = useState('');
+  // OTP step state
   const [phone, setPhone] = useState('');
-  const [email, setEmail] = useState('');
   const [otpSent, setOtpSent] = useState(false);
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [otpVerified, setOtpVerified] = useState(false);
   const [showOtpModal, setShowOtpModal] = useState(false);
 
-  // DPDP Consent
+  const otpTimeout1Ref = useRef(null);
+  const otpTimeout2Ref = useRef(null);
+
+  // Profile state
+  const [firstNameInput, setFirstNameInput] = useState('');
+  const [lastNameInput, setLastNameInput] = useState(''); // we only use last initial
+  const [oauthProvider, setOauthProvider] = useState(null);
+  const [pendingOAuthEmail, setPendingOAuthEmail] = useState(null);
+
+  const [avatarUploadUrl, setAvatarUploadUrl] = useState(null);
+
+  const [contactsSync, setContactsSync] = useState(false);
+  const [contactsPermissionRequested, setContactsPermissionRequested] = useState(false);
+
+  // DPDP consent (must be unchecked by default)
   const [dpdpConsent, setDpdpConsent] = useState(false);
   const [showDpdpDetails, setShowDpdpDetails] = useState(false);
 
-  /* ── Navigation helpers ──────────────────────────────── */
+  const fileInputRef = useRef(null);
+
+  const oauthReady = useMemo(() => Boolean(oauthProvider), [oauthProvider]);
 
   const goNext = useCallback(() => {
-    if (step < TOTAL_STEPS - 1) {
-      setDirection(1);
-      const next = step + 1;
-      setStep(next);
+    setDirection(1);
+    setStep((s) => {
+      const next = Math.min(1, s + 1);
       dispatch({ type: 'SET_ONBOARDING_STEP', payload: next });
-    }
-  }, [step, dispatch]);
+      return next;
+    });
+  }, [dispatch]);
 
   const goBack = useCallback(() => {
-    if (step > 0) {
-      setDirection(-1);
-      const prev = step - 1;
-      setStep(prev);
+    setDirection(-1);
+    setStep((s) => {
+      const prev = Math.max(0, s - 1);
       dispatch({ type: 'SET_ONBOARDING_STEP', payload: prev });
-    }
-  }, [step, dispatch]);
+      return prev;
+    });
+  }, [dispatch]);
 
-  const canProceed = () => {
-    switch (step) {
-      case 0: return selectedRole !== null;
-      case 1: return name.trim() && phone.length >= 10 && email.includes('@') && otpVerified && dpdpConsent;
-      default: return false;
-    }
-  };
+  const canProceed = useCallback(() => {
+    if (step === 0) return phone.length === 10 && otpVerified;
 
-  /* ── Finish onboarding ───────────────────────────────── */
+    if (step === 1) {
+      const { firstName, lastInitial } = getFirstNameAndLastInitial(`${firstNameInput} ${lastNameInput}`.trim());
+      const displayNameOk = Boolean(firstName.trim()) && Boolean(lastInitial);
+      // Avatar is auto-assigned if user doesn't upload.
+      return displayNameOk && dpdpConsent;
+    }
+
+    return false;
+  }, [step, phone.length, otpVerified, firstNameInput, lastNameInput, dpdpConsent]);
 
   const finishOnboarding = () => {
-    dispatch({ type: 'SET_USER_ROLE', payload: selectedRole });
     dispatch({ type: 'SET_DPDP_CONSENT', payload: true });
     dispatch({ type: 'SET_AUTHENTICATED', payload: true });
     dispatch({ type: 'SET_ONBOARDING_STEP', payload: TOTAL_STEPS });
     navigate('/');
   };
 
-  /* ── OTP simulation ──────────────────────────────────── */
+  useEffect(() => {
+    return () => {
+      if (otpTimeout1Ref.current) clearTimeout(otpTimeout1Ref.current);
+      if (otpTimeout2Ref.current) clearTimeout(otpTimeout2Ref.current);
+    };
+  }, []);
 
   const sendOtp = () => {
+    if (phone.length < 10) return;
+
+    if (otpTimeout1Ref.current) clearTimeout(otpTimeout1Ref.current);
+    if (otpTimeout2Ref.current) clearTimeout(otpTimeout2Ref.current);
+
     setOtpSent(true);
     setShowOtpModal(true);
+    setOtpVerified(false);
 
-    // Auto-fill OTP after 2 seconds
-    setTimeout(() => {
+    otpTimeout1Ref.current = setTimeout(() => {
       setOtp(['4', '8', '2', '7', '1', '5']);
-      setTimeout(() => {
+
+      otpTimeout2Ref.current = setTimeout(() => {
         setOtpVerified(true);
         setShowOtpModal(false);
       }, 800);
-    }, 2000);
+    }, 1500);
   };
 
-  /* ── Render ──────────────────────────────────────────── */
+  const handleOAuth = (provider) => {
+    // UI simulation:
+    // - store provider
+    // - store pending email
+    // - allow avatar swipe selection (oauth option becomes available)
+    setOauthProvider(provider);
+    setPendingOAuthEmail(provider === 'google' ? 'user@gmail.com' : 'user@icloud.com');
+  };
+
+  const handleUploadClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileSelected = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      setAvatarUploadUrl(reader.result?.toString() || null);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const requestContactsSync = () => {
+    setContactsPermissionRequested(true);
+    // UI simulation: pretend user granted permission
+    setTimeout(() => setContactsSync(true), 500);
+  };
 
   return (
     <div className="onboarding-container" style={{ maxWidth: 480, margin: '0 auto' }}>
-
-      {/* ── Progress Bar ───────────────────────────────── */}
       <div className="onboarding-progress">
         {Array.from({ length: TOTAL_STEPS }).map((_, i) => (
-          <div
-            key={i}
-            className={`onboarding-step ${
-              i < step ? 'completed' : i === step ? 'active' : ''
-            }`}
-          />
+          <div key={i} className={`onboarding-step ${i < step ? 'completed' : i === step ? 'active' : ''}`} />
         ))}
       </div>
 
-      {/* ── Step Label ──────────────────────────────────── */}
       <div style={{ marginBottom: 8 }}>
-        <span style={{
-          fontSize: 'var(--text-xs)',
-          color: 'var(--text-muted)',
-          fontWeight: 500,
-          letterSpacing: '0.05em',
-          textTransform: 'uppercase',
-        }}>
+        <span
+          style={{
+            fontSize: 'var(--text-xs)',
+            color: 'var(--text-muted)',
+            fontWeight: 500,
+            letterSpacing: '0.05em',
+            textTransform: 'uppercase',
+          }}
+        >
           Step {step + 1} of {TOTAL_STEPS}
         </span>
       </div>
 
-      {/* ── Step Content (Animated) ────────────────────── */}
-      <div style={{ flex: 1, overflow: 'hidden', position: 'relative', minHeight: 420 }}>
+      <div style={{ flex: 1, overflow: 'hidden', position: 'relative', minHeight: 520 }}>
         <AnimatePresence mode="wait" custom={direction}>
-
-          {/* ─── STEP 1: Role Selection ─────────────────── */}
           {step === 0 && (
             <motion.div
-              key="step-role"
+              key="step-otp"
               custom={direction}
               variants={slideVariants}
               initial="enter"
@@ -202,132 +233,19 @@ export default function Onboarding() {
               exit="exit"
               transition={{ duration: 0.35, ease: 'easeInOut' }}
             >
-              <h2 style={{
-                fontFamily: 'var(--font-heading)',
-                fontSize: 'var(--text-3xl)',
-                marginBottom: 4,
-              }}>
-                Who are you? <span style={{ fontSize: 'var(--text-2xl)' }}>✨</span>
+              <h2 style={{ fontFamily: 'var(--font-heading)', fontSize: 'var(--text-3xl)', marginBottom: 4 }}>
+                Sign up with OTP <span style={{ fontSize: 'var(--text-2xl)' }}>🔐</span>
               </h2>
-              <p style={{
-                color: 'var(--text-secondary)',
-                fontSize: 'var(--text-sm)',
-                marginBottom: 28,
-              }}>
-                We'll personalise your WanderZ experience
+              <p style={{ color: 'var(--text-secondary)', fontSize: 'var(--text-sm)', marginBottom: 22 }}>
+                Mobile number is your primary login method.
               </p>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
-                {ROLES.map((role, idx) => {
-                  const isSelected = selectedRole === role.id;
-                  return (
-                    <motion.div
-                      key={role.id}
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 0.1 + idx * 0.1, duration: 0.35 }}
-                      className={`role-card ${isSelected ? 'selected' : ''}`}
-                      onClick={() => setSelectedRole(role.id)}
-                    >
-                      <div
-                        className="role-icon"
-                        style={{
-                          background: isSelected ? role.gradient : 'var(--glass-bg-strong)',
-                          fontSize: '24px',
-                          transition: 'background 0.3s ease',
-                        }}
-                      >
-                        {role.emoji}
-                      </div>
-                      <div style={{ flex: 1 }}>
-                        <p style={{
-                          fontFamily: 'var(--font-heading)',
-                          fontWeight: 700,
-                          fontSize: 'var(--text-base)',
-                          color: 'var(--text-primary)',
-                          marginBottom: 2,
-                        }}>
-                          {role.label}
-                        </p>
-                        <p style={{
-                          fontSize: 'var(--text-xs)',
-                          color: 'var(--text-muted)',
-                          lineHeight: 1.4,
-                        }}>
-                          {role.description}
-                        </p>
-                      </div>
-                      {isSelected && (
-                        <motion.div
-                          initial={{ scale: 0 }}
-                          animate={{ scale: 1 }}
-                          transition={{ type: 'spring', stiffness: 400, damping: 15 }}
-                        >
-                          <CheckCircle2 size={22} color="var(--accent-primary)" />
-                        </motion.div>
-                      )}
-                    </motion.div>
-                  );
-                })}
-              </div>
-            </motion.div>
-          )}
-
-          {/* ─── STEP 2: Registration + DPDP ──────────── */}
-          {step === 1 && (
-            <motion.div
-              key="step-register"
-              custom={direction}
-              variants={slideVariants}
-              initial="enter"
-              animate="center"
-              exit="exit"
-              transition={{ duration: 0.35, ease: 'easeInOut' }}
-            >
-              <h2 style={{
-                fontFamily: 'var(--font-heading)',
-                fontSize: 'var(--text-3xl)',
-                marginBottom: 4,
-              }}>
-                Create your account <span style={{ fontSize: 'var(--text-2xl)' }}>🚀</span>
-              </h2>
-              <p style={{
-                color: 'var(--text-secondary)',
-                fontSize: 'var(--text-sm)',
-                marginBottom: 28,
-              }}>
-                Quick setup to get you started
-              </p>
-
-              {/* Name */}
-              <div className="input-group">
-                <label className="input-label">Full Name</label>
-                <div style={{ position: 'relative' }}>
-                  <User
-                    size={18}
-                    color="var(--text-muted)"
-                    style={{ position: 'absolute', top: 13, left: 14 }}
-                  />
-                  <input
-                    className="input"
-                    style={{ paddingLeft: 40 }}
-                    placeholder="Enter your full name"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                  />
-                </div>
-              </div>
 
               {/* Phone */}
               <div className="input-group">
-                <label className="input-label">Phone Number</label>
+                <label className="input-label">Mobile Number</label>
                 <div style={{ display: 'flex', gap: 8 }}>
                   <div style={{ position: 'relative', flex: 1 }}>
-                    <Phone
-                      size={18}
-                      color="var(--text-muted)"
-                      style={{ position: 'absolute', top: 13, left: 14 }}
-                    />
+                    <Phone size={18} color="var(--text-muted)" style={{ position: 'absolute', top: 13, left: 14 }} />
                     <input
                       className="input"
                       style={{ paddingLeft: 40 }}
@@ -335,6 +253,7 @@ export default function Onboarding() {
                       value={phone}
                       onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
                       maxLength={10}
+                      inputMode="numeric"
                     />
                   </div>
                   <motion.button
@@ -346,7 +265,9 @@ export default function Onboarding() {
                     disabled={phone.length < 10 || otpVerified}
                   >
                     {otpVerified ? (
-                      <><CheckCircle2 size={14} /> Verified</>
+                      <>
+                        <CheckCircle2 size={14} /> Verified
+                      </>
                     ) : otpSent ? (
                       'Resend'
                     ) : (
@@ -356,27 +277,6 @@ export default function Onboarding() {
                 </div>
               </div>
 
-              {/* Email */}
-              <div className="input-group">
-                <label className="input-label">Email</label>
-                <div style={{ position: 'relative' }}>
-                  <Mail
-                    size={18}
-                    color="var(--text-muted)"
-                    style={{ position: 'absolute', top: 13, left: 14 }}
-                  />
-                  <input
-                    className="input"
-                    style={{ paddingLeft: 40 }}
-                    type="email"
-                    placeholder="you@example.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                  />
-                </div>
-              </div>
-
-              {/* Verified badge */}
               {otpVerified && (
                 <motion.div
                   initial={{ opacity: 0, y: 8 }}
@@ -389,24 +289,186 @@ export default function Onboarding() {
                     background: 'rgba(16, 185, 129, 0.1)',
                     border: '1px solid rgba(16, 185, 129, 0.25)',
                     borderRadius: 'var(--radius-md)',
-                    marginTop: 4,
+                    marginTop: 12,
                   }}
                 >
                   <ShieldCheck size={18} color="var(--accent-emerald)" />
-                  <span style={{
-                    fontSize: 'var(--text-sm)',
-                    color: 'var(--accent-emerald)',
-                    fontWeight: 500,
-                  }}>
+                  <span style={{ fontSize: 'var(--text-sm)', color: 'var(--accent-emerald)', fontWeight: 500 }}>
                     Phone verified — you're all set!
                   </span>
                 </motion.div>
               )}
 
-              {/* ── DPDP Consent Checkbox ──────────────── */}
+              {/* OAuth secondary options */}
               <div style={{ marginTop: 20 }}>
-                <div className="divider" style={{ margin: '0 0 16px 0' }} />
+                <div className="divider" style={{ margin: '0 0 14px 0' }} />
+                <div style={{ fontSize: 12, fontWeight: 900, color: 'var(--text-secondary)', marginBottom: 10 }}>
+                  Or continue faster with OAuth (SSO)
+                </div>
 
+                <div style={{ display: 'flex', gap: 10 }}>
+                  <motion.button
+                    whileTap={{ scale: 0.98 }}
+                    className="btn btn-ghost"
+                    style={{ flex: 1 }}
+                    onClick={() => handleOAuth('google')}
+                  >
+                    Continue with Google
+                  </motion.button>
+
+                  <motion.button
+                    whileTap={{ scale: 0.98 }}
+                    className="btn btn-ghost"
+                    style={{ flex: 1 }}
+                    onClick={() => handleOAuth('apple')}
+                  >
+                    Continue with Apple
+                  </motion.button>
+                </div>
+
+                {pendingOAuthEmail && (
+                  <div
+                    style={{
+                      marginTop: 10,
+                      fontSize: 12,
+                      color: 'var(--text-muted)',
+                      lineHeight: 1.45,
+                      padding: '10px 12px',
+                      borderRadius: 'var(--radius-md)',
+                      border: '1px solid var(--glass-border)',
+                      background: 'rgba(255,255,255,0.03)',
+                    }}
+                  >
+                    Mapped provider email (<span style={{ color: 'var(--text-primary)', fontWeight: 800 }}>{pendingOAuthEmail}</span>) to your mobile later if needed.
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          )}
+
+          {step === 1 && (
+            <motion.div
+              key="step-profile"
+              custom={direction}
+              variants={slideVariants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              transition={{ duration: 0.35, ease: 'easeInOut' }}
+            >
+              <h2 style={{ fontFamily: 'var(--font-heading)', fontSize: 'var(--text-3xl)', marginBottom: 4 }}>
+                Finish your profile <span style={{ fontSize: 'var(--text-2xl)' }}>✨</span>
+              </h2>
+              <p style={{ color: 'var(--text-secondary)', fontSize: 'var(--text-sm)', marginBottom: 18 }}>
+                First name + last initial. No demographics. No cards.
+              </p>
+
+              {/* Display name: first name + last initial */}
+              <div className="input-group">
+                <label className="input-label">Display Name</label>
+                <div style={{ display: 'flex', gap: 10 }}>
+                  <div style={{ flex: 1, position: 'relative' }}>
+                    <User size={18} color="var(--text-muted)" style={{ position: 'absolute', top: 13, left: 14 }} />
+                    <input
+                      className="input"
+                      style={{ paddingLeft: 40 }}
+                      placeholder="First name"
+                      value={firstNameInput}
+                      onChange={(e) => setFirstNameInput(e.target.value)}
+                    />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <input
+                      className="input"
+                      placeholder="Last name"
+                      value={lastNameInput}
+                      onChange={(e) => setLastNameInput(e.target.value)}
+                      maxLength={24}
+                    />
+                    <div style={{ marginTop: 6, fontSize: 11, color: 'var(--text-muted)', fontWeight: 700 }}>
+                      We’ll only use last initial: <span style={{ color: 'var(--text-primary)' }}>{getFirstNameAndLastInitial(`${firstNameInput} ${lastNameInput}`).lastInitial || '—'}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Profile picture (optional). If not uploaded, avatar is auto-assigned. No preview. */}
+              <div style={{ marginTop: 10 }}>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  style={{ display: 'none' }}
+                  onChange={handleFileSelected}
+                />
+                <div
+                  style={{
+                    padding: 14,
+                    borderRadius: 'var(--radius-md)',
+                    border: '1px solid var(--glass-border)',
+                    background: 'var(--glass-bg)',
+                  }}
+                >
+                  <div style={{ fontSize: 13, fontWeight: 900, marginBottom: 6, fontFamily: 'var(--font-heading)' }}>
+                    Profile picture
+                  </div>
+                  <div style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.45, marginBottom: 12 }}>
+                    Upload a selfie (optional). If you don’t, we’ll assign an avatar automatically.
+                  </div>
+
+                  <motion.button
+                    whileTap={{ scale: 0.98 }}
+                    className="btn btn-ghost"
+                    style={{ width: '100%' }}
+                    onClick={handleUploadClick}
+                  >
+                    Upload selfie
+                  </motion.button>
+                  {avatarUploadUrl && (
+                    <div style={{ marginTop: 10, fontSize: 12, color: 'var(--accent-emerald)', fontWeight: 800 }}>
+                      Selfie uploaded.
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Contacts sync */}
+              <div style={{ marginTop: 18 }}>
+                <div className="divider" style={{ margin: '0 0 14px 0' }} />
+                <motion.button
+                  whileTap={{ scale: 0.99 }}
+                  className="btn btn-ghost"
+                  onClick={requestContactsSync}
+                  style={{
+                    width: '100%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: 12,
+                    padding: '12px 14px',
+                    borderRadius: 'var(--radius-md)',
+                    border: '1px solid var(--glass-border)',
+                    background: contactsSync ? 'rgba(16,185,129,0.08)' : 'var(--glass-bg)',
+                  }}
+                >
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 10, fontWeight: 900 }}>
+                    <Users size={18} /> Sync Contacts (Invite friends faster)
+                  </span>
+                  <span
+                    style={{
+                      fontSize: 12,
+                      color: contactsSync ? 'var(--accent-emerald)' : 'var(--text-muted)',
+                      fontWeight: 900,
+                    }}
+                  >
+                    {contactsSync ? 'Granted' : contactsPermissionRequested ? 'Requesting…' : 'Allow'}
+                  </span>
+                </motion.button>
+              </div>
+
+              {/* DPDP Consent */}
+              <div style={{ marginTop: 18 }}>
+                <div className="divider" style={{ margin: '0 0 14px 0' }} />
                 <label
                   style={{
                     display: 'flex',
@@ -434,51 +496,37 @@ export default function Onboarding() {
                     }}
                   />
                   <div style={{ flex: 1 }}>
-                    <div style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 6,
-                      marginBottom: 4,
-                    }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
                       <Shield size={14} color="var(--accent-secondary)" />
-                      <span style={{
-                        fontSize: 'var(--text-sm)',
-                        fontWeight: 600,
-                        color: 'var(--text-primary)',
-                      }}>
-                        I consent to data processing under DPDP Act 2023
+                      <span style={{ fontSize: 'var(--text-sm)', fontWeight: 800, color: 'var(--text-primary)' }}>
+                        {DPDP_CONSENT_TEXT}
                       </span>
                     </div>
-                    <p style={{
-                      fontSize: 'var(--text-xs)',
-                      color: 'var(--text-muted)',
-                      lineHeight: 1.5,
-                    }}>
-                      WanderZ processes your personal data for trip planning, group coordination, and personalised recommendations.
+                    <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', lineHeight: 1.5, marginBottom: 0 }}>
+                      We only use your data to plan trips, coordinate groups, and enable secure payment processing.
                     </p>
                   </div>
                 </label>
 
-                {/* Read More toggle */}
                 <motion.button
                   onClick={() => setShowDpdpDetails(!showDpdpDetails)}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
                     gap: 4,
-                    marginTop: 8,
+                    marginTop: 10,
                     background: 'none',
                     border: 'none',
                     color: 'var(--accent-secondary)',
                     fontSize: 'var(--text-xs)',
-                    fontWeight: 600,
+                    fontWeight: 800,
                     cursor: 'pointer',
                     padding: '4px 0',
                   }}
                   whileTap={{ scale: 0.97 }}
                 >
                   {showDpdpDetails ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-                  {showDpdpDetails ? 'Hide details' : 'Read more about our data practices'}
+                  {showDpdpDetails ? 'Hide details' : 'DPDP details'}
                 </motion.button>
 
                 <AnimatePresence>
@@ -490,34 +538,25 @@ export default function Onboarding() {
                       transition={{ duration: 0.25 }}
                       style={{ overflow: 'hidden' }}
                     >
-                      <div style={{
-                        padding: '12px 14px',
-                        background: 'rgba(124, 58, 237, 0.05)',
-                        border: '1px solid rgba(124, 58, 237, 0.15)',
-                        borderRadius: 'var(--radius-md)',
-                        marginTop: 8,
-                      }}>
-                        <ul style={{
-                          listStyle: 'none',
-                          padding: 0,
-                          margin: 0,
-                          display: 'flex',
-                          flexDirection: 'column',
-                          gap: 8,
-                        }}>
-                          {DPDP_DETAILS.map((detail, idx) => (
-                            <li key={idx} style={{
-                              display: 'flex',
-                              alignItems: 'flex-start',
-                              gap: 8,
-                              fontSize: 'var(--text-xs)',
-                              color: 'var(--text-secondary)',
-                              lineHeight: 1.5,
-                            }}>
-                              <span style={{ color: 'var(--accent-emerald)', flexShrink: 0, marginTop: 1 }}>✓</span>
-                              {detail}
-                            </li>
-                          ))}
+                      <div
+                        style={{
+                          padding: '12px 14px',
+                          background: 'rgba(124, 58, 237, 0.05)',
+                          border: '1px solid rgba(124, 58, 237, 0.15)',
+                          borderRadius: 'var(--radius-md)',
+                          marginTop: 10,
+                        }}
+                      >
+                        <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                          <li style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                            ✓ Data used for trip planning and group coordination.
+                          </li>
+                          <li style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                            ✓ Data used for trip payments processing.
+                          </li>
+                          <li style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                            ✓ No credit card linking required at sign up.
+                          </li>
                         </ul>
                       </div>
                     </motion.div>
@@ -529,21 +568,9 @@ export default function Onboarding() {
         </AnimatePresence>
       </div>
 
-      {/* ── Navigation Buttons ─────────────────────────── */}
-      <div style={{
-        display: 'flex',
-        gap: 12,
-        paddingTop: 24,
-        marginTop: 'auto',
-      }}>
+      <div style={{ display: 'flex', gap: 12, paddingTop: 24, marginTop: 'auto' }}>
         {step > 0 && (
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.97 }}
-            className="btn btn-ghost"
-            onClick={goBack}
-            style={{ flex: '0 0 auto' }}
-          >
+          <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }} className="btn btn-ghost" onClick={goBack} style={{ flex: '0 0 auto' }}>
             <ArrowLeft size={18} />
             Back
           </motion.button>
@@ -553,11 +580,7 @@ export default function Onboarding() {
           whileHover={canProceed() ? { scale: 1.02 } : {}}
           whileTap={canProceed() ? { scale: 0.97 } : {}}
           className="btn btn-primary btn-lg"
-          style={{
-            flex: 1,
-            opacity: canProceed() ? 1 : 0.45,
-            pointerEvents: canProceed() ? 'auto' : 'none',
-          }}
+          style={{ flex: 1, opacity: canProceed() ? 1 : 0.45, pointerEvents: canProceed() ? 'auto' : 'none' }}
           onClick={step === TOTAL_STEPS - 1 ? finishOnboarding : goNext}
         >
           {step === TOTAL_STEPS - 1 ? (
@@ -612,61 +635,37 @@ export default function Onboarding() {
             >
               <button
                 onClick={() => setShowOtpModal(false)}
-                style={{
-                  position: 'absolute',
-                  top: 14,
-                  right: 14,
-                  background: 'none',
-                  border: 'none',
-                  color: 'var(--text-muted)',
-                  cursor: 'pointer',
-                }}
+                style={{ position: 'absolute', top: 14, right: 14, background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
               >
                 <X size={20} />
               </button>
 
-              <div style={{
-                width: 56,
-                height: 56,
-                borderRadius: '50%',
-                background: 'rgba(124, 58, 237, 0.15)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                margin: '0 auto 16px',
-              }}>
+              <div
+                style={{
+                  width: 56,
+                  height: 56,
+                  borderRadius: '50%',
+                  background: 'rgba(124, 58, 237, 0.15)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  margin: '0 auto 16px',
+                }}
+              >
                 <Phone size={24} color="var(--accent-secondary)" />
               </div>
 
-              <h4 style={{
-                fontFamily: 'var(--font-heading)',
-                marginBottom: 6,
-              }}>
-                Verify your phone
-              </h4>
-              <p style={{
-                fontSize: 'var(--text-sm)',
-                color: 'var(--text-secondary)',
-                marginBottom: 24,
-              }}>
-                OTP sent to +91 {phone.replace(/(\d{5})(\d{5})/, '$1 $2')}
+              <h4 style={{ fontFamily: 'var(--font-heading)', marginBottom: 6 }}>Verify your phone</h4>
+              <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', marginBottom: 24 }}>
+                OTP sent to +91 {formatMaskedPhone(phone)}
               </p>
 
-              {/* OTP Inputs */}
-              <div style={{
-                display: 'flex',
-                justifyContent: 'center',
-                gap: 8,
-                marginBottom: 20,
-              }}>
+              <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginBottom: 20 }}>
                 {otp.map((digit, i) => (
                   <motion.div
                     key={i}
                     initial={{ scale: 0.8, opacity: 0 }}
-                    animate={{
-                      scale: digit ? 1 : 0.9,
-                      opacity: 1,
-                    }}
+                    animate={{ scale: digit ? 1 : 0.9, opacity: 1 }}
                     transition={{ delay: digit ? 0.05 * i : 0, duration: 0.2 }}
                     style={{
                       width: 44,
@@ -689,45 +688,21 @@ export default function Onboarding() {
                 ))}
               </div>
 
-              {/* Auto-fill progress */}
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 8,
-              }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
                 {!otp[0] ? (
                   <>
                     <motion.div
                       animate={{ rotate: 360 }}
                       transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}
-                      style={{
-                        width: 16,
-                        height: 16,
-                        borderRadius: '50%',
-                        border: '2px solid var(--glass-border)',
-                        borderTopColor: 'var(--accent-primary)',
-                      }}
+                      style={{ width: 16, height: 16, borderRadius: '50%', border: '2px solid var(--glass-border)', borderTopColor: 'var(--accent-primary)' }}
                     />
-                    <span style={{
-                      fontSize: 'var(--text-xs)',
-                      color: 'var(--text-muted)',
-                    }}>
-                      Auto-reading OTP...
-                    </span>
+                    <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>Auto-reading OTP...</span>
                   </>
                 ) : (
                   <motion.span
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    style={{
-                      fontSize: 'var(--text-xs)',
-                      color: 'var(--accent-emerald)',
-                      fontWeight: 500,
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 4,
-                    }}
+                    style={{ fontSize: 'var(--text-xs)', color: 'var(--accent-emerald)', fontWeight: 500, display: 'flex', alignItems: 'center', gap: 4 }}
                   >
                     <CheckCircle2 size={14} />
                     OTP auto-filled — verifying...

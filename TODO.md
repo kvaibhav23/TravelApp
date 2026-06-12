@@ -1,0 +1,21 @@
+- [x] Replace `src/pages/Onboarding.jsx` with required registration flow
+  - [x] Remove role selection / demographic profiling + remove email as required field
+  - [x] Primary: Mobile Number + OTP (simulated)
+  - [x] Secondary: “Continue with Google” + “Continue with Apple” (UI-simulated)
+  - [x] Display Name: First name + last initial only
+  - [x] Profile Picture: simplified (upload selfie optional; no swipe UI)
+  - [x] Contacts Sync: permission-style button (optional, non-blocking)
+  - [x] DPDP consent: un-pre-checked checkbox with exact required text
+  - [x] Finish: dispatch authentication + dpdp consent, navigate home
+  - [x] Ensure no credit-card linking / no pre-loaded payment methods
+- [x] Updated onboarding/Home navigation stability (no white-screen regression)
+- [x] Implemented “Scan Receipts” + “My Receipts” gallery
+  - [x] Updated `src/components/QRScanner.jsx` to save receipt photos to a user receipt gallery (AppContext)
+  - [x] Added `src/components/ReceiptGallery.jsx`
+  - [x] Updated `src/pages/ActiveTrip.jsx` to support receipt/gallery view via query params
+  - [x] Updated `src/pages/Home.jsx` hamburger menu items (Split Expense, Scan Receipts, Trip Gallery, My Receipts)
+- [ ] Thorough UI regression test (manual) still recommended:
+  - [ ] Home hamburger menu items navigation + no crashes
+  - [ ] ActiveTrip: open/close receipt scanner, add receipt, verify appears in My Receipts
+  - [ ] ReceiptGallery: empty state + lightbox navigation
+  - [ ] Ensure switching receipts gallery vs trip gallery doesn’t crash

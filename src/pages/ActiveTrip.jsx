@@ -2,13 +2,14 @@ import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   MapPin, ScanLine, PlusCircle, Image, ChevronLeft, Wallet,
-  ArrowRightLeft, CheckCircle2, Calendar
+  ArrowRightLeft, CheckCircle2, Calendar, ClipboardList
 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { TRIP_EXPENSES, GROUP_MEMBERS } from '../data/mockTravelData';
 import QRScanner from '../components/QRScanner';
 import TripGallery from '../components/TripGallery';
+import ReceiptGallery from '../components/ReceiptGallery';
 import '../index.css';
 
 const getMember = (id) => GROUP_MEMBERS.find(m => m.id === id);
@@ -18,8 +19,10 @@ export default function ActiveTrip() {
   const navigate = useNavigate();
   const expenses = state.expenses || TRIP_EXPENSES;
 
+  const [searchParams] = useSearchParams();
   const [showScanner, setShowScanner] = useState(false);
   const [showGallery, setShowGallery] = useState(false);
+  const [showReceiptsGallery, setShowReceiptsGallery] = useState(false);
   const [settledItems, setSettledItems] = useState({});
 
   // Calculate member totals
@@ -85,13 +88,22 @@ export default function ActiveTrip() {
 
   const totalExpenses = expenses.reduce((s, e) => s + e.amount, 0);
 
-  if (showScanner) {
-    return <QRScanner onClose={() => setShowScanner(false)} />;
+  const tab = searchParams.get('tab');
+  const scanner = searchParams.get('scanner');
+
+  if (tab === 'gallery') {
+    if (!showGallery) setShowGallery(true);
+  }
+  if (tab === 'receipts') {
+    if (!showReceiptsGallery) setShowReceiptsGallery(true);
+  }
+  if (scanner === 'receipts') {
+    if (!showScanner) setShowScanner(true);
   }
 
-  if (showGallery) {
-    return <TripGallery onClose={() => setShowGallery(false)} />;
-  }
+  if (showScanner) return <QRScanner onClose={() => setShowScanner(false)} />;
+  if (showReceiptsGallery) return <ReceiptGallery receipts={state.receipts} onClose={() => setShowReceiptsGallery(false)} />;
+  if (showGallery) return <TripGallery onClose={() => setShowGallery(false)} />;
 
   return (
     <div className="page">
@@ -147,9 +159,10 @@ export default function ActiveTrip() {
         transition={{ delay: 0.1 }}
       >
         {[
-          { icon: <ScanLine size={20} />, label: 'Scan & Pay', color: 'var(--accent-primary)', action: () => setShowScanner(true) },
+          { icon: <ScanLine size={20} />, label: 'Scan Receipts', color: 'var(--accent-primary)', action: () => setShowScanner(true) },
           { icon: <PlusCircle size={20} />, label: 'Add Expense', color: 'var(--accent-emerald)', action: () => {} },
-          { icon: <Image size={20} />, label: 'View Gallery', color: 'var(--accent-cyan)', action: () => setShowGallery(true) },
+          { icon: <ClipboardList size={20} />, label: 'My Receipts', color: 'var(--accent-secondary)', action: () => setShowReceiptsGallery(true) },
+          { icon: <Image size={20} />, label: 'Trip Gallery', color: 'var(--accent-cyan)', action: () => setShowGallery(true) },
         ].map((act, i) => (
           <motion.button
             key={act.label}

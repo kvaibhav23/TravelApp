@@ -46,6 +46,9 @@ const initialState = {
   expenses: TRIP_EXPENSES,
   tripActive: false,
 
+  // Receipts (user gallery)
+  receipts: [],
+
   // AI Planner
   aiSuggestions: [],
   sharedToGroup: [],
@@ -127,6 +130,11 @@ function appReducer(state, action) {
 
     case 'ADD_EXPENSE':
       return { ...state, expenses: [...state.expenses, action.payload] };
+
+    case 'ADD_RECEIPT': {
+      const next = [...(state.receipts || []), action.payload];
+      return { ...state, receipts: next };
+    }
 
     case 'SHOW_CELEBRATION':
       return { ...state, showCelebration: action.payload };
