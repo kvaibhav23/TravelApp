@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -11,19 +11,19 @@ import {
   Mail,
   User,
   ShieldCheck,
-  Lock,
   Sparkles,
   CheckCircle2,
   X,
+  ChevronDown,
+  ChevronUp,
+  Shield,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
-import KYCVerification from '../components/KYCVerification';
-import ConsentManager from '../components/ConsentManager';
 import '../index.css';
 
 /* ── Constants ───────────────────────────────────────────── */
 
-const TOTAL_STEPS = 4;
+const TOTAL_STEPS = 2;
 
 const ROLES = [
   {
@@ -69,10 +69,19 @@ const slideVariants = {
   }),
 };
 
+/* ── DPDP Details ─────────────────────────────────────── */
+const DPDP_DETAILS = [
+  'Your personal data (name, phone, email) is used solely for trip planning and group coordination.',
+  'Data is processed as per the Digital Personal Data Protection Act, 2023.',
+  'You can request deletion of your data at any time from Settings.',
+  'We do not sell or share your personal data with third parties without your consent.',
+  'Trip analytics may be used to improve your recommendations (optional).',
+];
+
 /* ── Main Onboarding Component ────────────────────────── */
 
 export default function Onboarding() {
-  const { state, dispatch } = useApp();
+  const { dispatch } = useApp();
   const navigate = useNavigate();
 
   const [step, setStep] = useState(0);
@@ -81,7 +90,7 @@ export default function Onboarding() {
   // Step 1 — Role
   const [selectedRole, setSelectedRole] = useState(null);
 
-  // Step 2 — Lite KYC
+  // Step 2 — Registration
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
@@ -90,14 +99,9 @@ export default function Onboarding() {
   const [otpVerified, setOtpVerified] = useState(false);
   const [showOtpModal, setShowOtpModal] = useState(false);
 
-  // Step 3 — Full KYC
-  const [panVerified, setPanVerified] = useState(false);
-  const [aadhaarVerified, setAadhaarVerified] = useState(false);
-  const [aadhaarLinkStarted, setAadhaarLinkStarted] = useState(false);
-  const [aadhaarLinkDone, setAadhaarLinkDone] = useState(false);
-
-  // Step 4 — Consent
-  const [consentsReady, setConsentsReady] = useState(false);
+  // DPDP Consent
+  const [dpdpConsent, setDpdpConsent] = useState(false);
+  const [showDpdpDetails, setShowDpdpDetails] = useState(false);
 
   /* ── Navigation helpers ──────────────────────────────── */
 
@@ -122,9 +126,7 @@ export default function Onboarding() {
   const canProceed = () => {
     switch (step) {
       case 0: return selectedRole !== null;
-      case 1: return name.trim() && phone.length >= 10 && email.includes('@') && otpVerified;
-      case 2: return true; // optional step
-      case 3: return true;
+      case 1: return name.trim() && phone.length >= 10 && email.includes('@') && otpVerified && dpdpConsent;
       default: return false;
     }
   };
@@ -133,7 +135,7 @@ export default function Onboarding() {
 
   const finishOnboarding = () => {
     dispatch({ type: 'SET_USER_ROLE', payload: selectedRole });
-    dispatch({ type: 'SET_KYC_STATUS', payload: panVerified && aadhaarVerified ? 'full' : 'lite' });
+    dispatch({ type: 'SET_DPDP_CONSENT', payload: true });
     dispatch({ type: 'SET_AUTHENTICATED', payload: true });
     dispatch({ type: 'SET_ONBOARDING_STEP', payload: TOTAL_STEPS });
     navigate('/');
@@ -153,16 +155,6 @@ export default function Onboarding() {
         setShowOtpModal(false);
       }, 800);
     }, 2000);
-  };
-
-  /* ── DigiLocker simulation ───────────────────────────── */
-
-  const startAadhaarLink = () => {
-    setAadhaarLinkStarted(true);
-    setTimeout(() => {
-      setAadhaarLinkDone(true);
-      setAadhaarVerified(true);
-    }, 3000);
   };
 
   /* ── Render ──────────────────────────────────────────── */
@@ -281,10 +273,10 @@ export default function Onboarding() {
             </motion.div>
           )}
 
-          {/* ─── STEP 2: Lite KYC ──────────────────────── */}
+          {/* ─── STEP 2: Registration + DPDP ──────────── */}
           {step === 1 && (
             <motion.div
-              key="step-kyc-lite"
+              key="step-register"
               custom={direction}
               variants={slideVariants}
               initial="enter"
@@ -297,14 +289,14 @@ export default function Onboarding() {
                 fontSize: 'var(--text-3xl)',
                 marginBottom: 4,
               }}>
-                Quick verification <span style={{ fontSize: 'var(--text-2xl)' }}>🔐</span>
+                Create your account <span style={{ fontSize: 'var(--text-2xl)' }}>🚀</span>
               </h2>
               <p style={{
                 color: 'var(--text-secondary)',
                 fontSize: 'var(--text-sm)',
                 marginBottom: 28,
               }}>
-                Lite KYC for secure group payments
+                Quick setup to get you started
               </p>
 
               {/* Name */}
@@ -406,290 +398,132 @@ export default function Onboarding() {
                     color: 'var(--accent-emerald)',
                     fontWeight: 500,
                   }}>
-                    Phone verified — Lite KYC ready
+                    Phone verified — you're all set!
                   </span>
                 </motion.div>
               )}
-            </motion.div>
-          )}
 
-          {/* ─── STEP 3: Full KYC ──────────────────────── */}
-          {step === 2 && (
-            <motion.div
-              key="step-kyc-full"
-              custom={direction}
-              variants={slideVariants}
-              initial="enter"
-              animate="center"
-              exit="exit"
-              transition={{ duration: 0.35, ease: 'easeInOut' }}
-            >
-              <h2 style={{
-                fontFamily: 'var(--font-heading)',
-                fontSize: 'var(--text-3xl)',
-                marginBottom: 4,
-              }}>
-                Go unlimited <span style={{ fontSize: 'var(--text-2xl)' }}>🚀</span>
-              </h2>
-              <p style={{
-                color: 'var(--text-secondary)',
-                fontSize: 'var(--text-sm)',
-                marginBottom: 20,
-              }}>
-                Full KYC removes all transaction limits
-              </p>
+              {/* ── DPDP Consent Checkbox ──────────────── */}
+              <div style={{ marginTop: 20 }}>
+                <div className="divider" style={{ margin: '0 0 16px 0' }} />
 
-              {/* Tiered KYC info card */}
-              <motion.div
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.15 }}
-                style={{
-                  background: 'linear-gradient(135deg, rgba(124,58,237,0.12) 0%, rgba(6,182,212,0.08) 100%)',
-                  border: '1px solid rgba(124, 58, 237, 0.25)',
-                  borderRadius: 'var(--radius-lg)',
-                  padding: '16px 18px',
-                  marginBottom: 24,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 10,
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <Sparkles size={18} color="var(--accent-secondary)" />
-                  <span style={{
-                    fontSize: 'var(--text-sm)',
-                    fontWeight: 600,
-                    color: 'var(--text-primary)',
-                  }}>
-                    KYC Tiers
-                  </span>
-                </div>
-                <div style={{
-                  display: 'flex',
-                  gap: 8,
-                }}>
-                  <div style={{
-                    flex: 1,
-                    padding: '10px 12px',
-                    background: 'rgba(16, 185, 129, 0.1)',
-                    border: '1px solid rgba(16, 185, 129, 0.2)',
-                    borderRadius: 'var(--radius-sm)',
-                  }}>
-                    <p style={{
-                      fontSize: 'var(--text-xs)',
-                      fontWeight: 600,
-                      color: 'var(--accent-emerald)',
-                      marginBottom: 2,
-                    }}>
-                      ✅ Lite KYC
-                    </p>
-                    <p style={{
-                      fontSize: '11px',
-                      color: 'var(--text-muted)',
-                      lineHeight: 1.3,
-                    }}>
-                      Unlocked ₹10k transactions
-                    </p>
-                  </div>
-                  <div style={{
-                    flex: 1,
-                    padding: '10px 12px',
-                    background: 'rgba(124, 58, 237, 0.1)',
-                    border: '1px solid rgba(124, 58, 237, 0.2)',
-                    borderRadius: 'var(--radius-sm)',
-                  }}>
-                    <p style={{
-                      fontSize: 'var(--text-xs)',
-                      fontWeight: 600,
-                      color: 'var(--accent-secondary)',
-                      marginBottom: 2,
-                    }}>
-                      🚀 Full KYC
-                    </p>
-                    <p style={{
-                      fontSize: '11px',
-                      color: 'var(--text-muted)',
-                      lineHeight: 1.3,
-                    }}>
-                      Unlocks unlimited
-                    </p>
-                  </div>
-                </div>
-              </motion.div>
-
-              {/* PAN Card Verification */}
-              <div style={{ marginBottom: 20 }}>
-                <h4 style={{
-                  fontFamily: 'var(--font-heading)',
-                  fontSize: 'var(--text-lg)',
-                  marginBottom: 12,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 8,
-                }}>
-                  <Lock size={18} color="var(--accent-secondary)" />
-                  PAN Card
-                  {panVerified && (
-                    <span className="badge badge-emerald" style={{ marginLeft: 'auto' }}>Verified</span>
-                  )}
-                </h4>
-                <KYCVerification
-                  documentType="PAN Card"
-                  onComplete={() => setPanVerified(true)}
-                />
-              </div>
-
-              <div className="divider" />
-
-              {/* Aadhaar via DigiLocker */}
-              <div>
-                <h4 style={{
-                  fontFamily: 'var(--font-heading)',
-                  fontSize: 'var(--text-lg)',
-                  marginBottom: 12,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 8,
-                }}>
-                  <ShieldCheck size={18} color="var(--accent-secondary)" />
-                  Aadhaar via DigiLocker
-                  {aadhaarVerified && (
-                    <span className="badge badge-emerald" style={{ marginLeft: 'auto' }}>Verified</span>
-                  )}
-                </h4>
-
-                {!aadhaarLinkStarted ? (
-                  <motion.button
-                    whileHover={{ scale: 1.01 }}
-                    whileTap={{ scale: 0.97 }}
-                    className="btn btn-ghost btn-full"
-                    onClick={startAadhaarLink}
+                <label
+                  style={{
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: 12,
+                    cursor: 'pointer',
+                    padding: '12px 14px',
+                    background: dpdpConsent ? 'rgba(124, 58, 237, 0.08)' : 'var(--glass-bg)',
+                    border: `1px solid ${dpdpConsent ? 'rgba(124, 58, 237, 0.3)' : 'var(--glass-border)'}`,
+                    borderRadius: 'var(--radius-md)',
+                    transition: 'all 0.25s ease',
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={dpdpConsent}
+                    onChange={(e) => setDpdpConsent(e.target.checked)}
                     style={{
-                      padding: '16px',
-                      justifyContent: 'center',
-                      gap: 10,
+                      marginTop: 2,
+                      width: 18,
+                      height: 18,
+                      accentColor: 'var(--accent-primary)',
+                      flexShrink: 0,
+                      cursor: 'pointer',
                     }}
-                  >
-                    <img
-                      src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23a78bfa' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect width='18' height='11' x='3' y='11' rx='2' ry='2'/%3E%3Cpath d='M7 11V7a5 5 0 0 1 10 0v4'/%3E%3C/svg%3E"
-                      alt=""
-                      style={{ width: 20, height: 20 }}
-                    />
-                    Link via DigiLocker
-                  </motion.button>
-                ) : !aadhaarLinkDone ? (
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="glass-card"
-                    style={{
-                      padding: '20px',
-                      textAlign: 'center',
-                    }}
-                  >
-                    <motion.div
-                      animate={{ rotate: 360 }}
-                      transition={{ repeat: Infinity, duration: 1.5, ease: 'linear' }}
-                      style={{
-                        width: 40,
-                        height: 40,
-                        margin: '0 auto 12px',
-                        borderRadius: '50%',
-                        border: '3px solid var(--glass-border)',
-                        borderTopColor: 'var(--accent-primary)',
-                      }}
-                    />
-                    <p style={{
-                      fontSize: 'var(--text-sm)',
-                      color: 'var(--text-secondary)',
-                    }}>
-                      Connecting to DigiLocker...
-                    </p>
-                    <p style={{
-                      fontSize: 'var(--text-xs)',
-                      color: 'var(--text-muted)',
-                      marginTop: 4,
-                    }}>
-                      Simulating OAuth consent flow
-                    </p>
-                  </motion.div>
-                ) : (
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ type: 'spring', stiffness: 200, damping: 18 }}
-                    className="glass-card"
-                    style={{
-                      padding: '16px 20px',
-                      border: '1px solid rgba(16, 185, 129, 0.3)',
-                      background: 'rgba(16, 185, 129, 0.06)',
+                  />
+                  <div style={{ flex: 1 }}>
+                    <div style={{
                       display: 'flex',
                       alignItems: 'center',
-                      gap: 12,
-                    }}
-                  >
-                    <CheckCircle2 size={22} color="var(--accent-emerald)" />
-                    <div>
-                      <p style={{
+                      gap: 6,
+                      marginBottom: 4,
+                    }}>
+                      <Shield size={14} color="var(--accent-secondary)" />
+                      <span style={{
                         fontSize: 'var(--text-sm)',
                         fontWeight: 600,
-                        color: 'var(--accent-emerald)',
+                        color: 'var(--text-primary)',
                       }}>
-                        Aadhaar Verified
-                      </p>
-                      <p style={{
-                        fontSize: 'var(--text-xs)',
-                        color: 'var(--text-muted)',
-                      }}>
-                        XXXX XXXX 4821 linked via DigiLocker
-                      </p>
+                        I consent to data processing under DPDP Act 2023
+                      </span>
                     </div>
-                  </motion.div>
-                )}
+                    <p style={{
+                      fontSize: 'var(--text-xs)',
+                      color: 'var(--text-muted)',
+                      lineHeight: 1.5,
+                    }}>
+                      WanderZ processes your personal data for trip planning, group coordination, and personalised recommendations.
+                    </p>
+                  </div>
+                </label>
+
+                {/* Read More toggle */}
+                <motion.button
+                  onClick={() => setShowDpdpDetails(!showDpdpDetails)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 4,
+                    marginTop: 8,
+                    background: 'none',
+                    border: 'none',
+                    color: 'var(--accent-secondary)',
+                    fontSize: 'var(--text-xs)',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    padding: '4px 0',
+                  }}
+                  whileTap={{ scale: 0.97 }}
+                >
+                  {showDpdpDetails ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                  {showDpdpDetails ? 'Hide details' : 'Read more about our data practices'}
+                </motion.button>
+
+                <AnimatePresence>
+                  {showDpdpDetails && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.25 }}
+                      style={{ overflow: 'hidden' }}
+                    >
+                      <div style={{
+                        padding: '12px 14px',
+                        background: 'rgba(124, 58, 237, 0.05)',
+                        border: '1px solid rgba(124, 58, 237, 0.15)',
+                        borderRadius: 'var(--radius-md)',
+                        marginTop: 8,
+                      }}>
+                        <ul style={{
+                          listStyle: 'none',
+                          padding: 0,
+                          margin: 0,
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: 8,
+                        }}>
+                          {DPDP_DETAILS.map((detail, idx) => (
+                            <li key={idx} style={{
+                              display: 'flex',
+                              alignItems: 'flex-start',
+                              gap: 8,
+                              fontSize: 'var(--text-xs)',
+                              color: 'var(--text-secondary)',
+                              lineHeight: 1.5,
+                            }}>
+                              <span style={{ color: 'var(--accent-emerald)', flexShrink: 0, marginTop: 1 }}>✓</span>
+                              {detail}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
-
-              {/* Skip note */}
-              <p style={{
-                fontSize: 'var(--text-xs)',
-                color: 'var(--text-muted)',
-                textAlign: 'center',
-                marginTop: 20,
-              }}>
-                You can skip this step and complete Full KYC later from Settings.
-              </p>
-            </motion.div>
-          )}
-
-          {/* ─── STEP 4: DPDP Consent ──────────────────── */}
-          {step === 3 && (
-            <motion.div
-              key="step-consent"
-              custom={direction}
-              variants={slideVariants}
-              initial="enter"
-              animate="center"
-              exit="exit"
-              transition={{ duration: 0.35, ease: 'easeInOut' }}
-            >
-              <h2 style={{
-                fontFamily: 'var(--font-heading)',
-                fontSize: 'var(--text-3xl)',
-                marginBottom: 4,
-              }}>
-                Your data, your rules <span style={{ fontSize: 'var(--text-2xl)' }}>🛡️</span>
-              </h2>
-              <p style={{
-                color: 'var(--text-secondary)',
-                fontSize: 'var(--text-sm)',
-                marginBottom: 24,
-              }}>
-                DPDP Act compliant privacy controls
-              </p>
-
-              <ConsentManager
-                onConsentsChange={() => setConsentsReady(true)}
-              />
             </motion.div>
           )}
         </AnimatePresence>
@@ -721,8 +555,8 @@ export default function Onboarding() {
           className="btn btn-primary btn-lg"
           style={{
             flex: 1,
-            opacity: canProceed() || step === 2 || step === 3 ? 1 : 0.45,
-            pointerEvents: canProceed() || step === 2 || step === 3 ? 'auto' : 'none',
+            opacity: canProceed() ? 1 : 0.45,
+            pointerEvents: canProceed() ? 'auto' : 'none',
           }}
           onClick={step === TOTAL_STEPS - 1 ? finishOnboarding : goNext}
         >
@@ -730,11 +564,6 @@ export default function Onboarding() {
             <>
               <Sparkles size={18} />
               Launch WanderZ
-            </>
-          ) : step === 2 ? (
-            <>
-              {panVerified && aadhaarVerified ? 'Continue' : 'Skip for now'}
-              <ArrowRight size={18} />
             </>
           ) : (
             <>

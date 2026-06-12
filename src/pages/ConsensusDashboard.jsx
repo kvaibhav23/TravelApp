@@ -9,8 +9,10 @@ import {
   PartyPopper,
   ChevronDown,
   ChevronUp,
+  ArrowRight,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
+import { useNavigate } from 'react-router-dom';
 import { DESTINATIONS, VOTES, GROUP_MEMBERS } from '../data/mockTravelData';
 import RoomClaiming from '../components/RoomClaiming';
 import ItineraryCard from '../components/ItineraryCard';
@@ -223,6 +225,7 @@ function VoteBar({ destId, upCount, downCount, totalVoters, delay }) {
 /* ---- Main Dashboard ---- */
 export default function ConsensusDashboard() {
   const { state, dispatch } = useApp();
+  const navigate = useNavigate();
   const [showConfetti, setShowConfetti] = useState(false);
   const [expandedId, setExpandedId] = useState(null);
 
@@ -326,6 +329,18 @@ export default function ConsensusDashboard() {
             style={{ marginBottom: '24px' }}
           >
             <ItineraryCard destination={lockedItinerary} />
+
+            <div style={{ marginTop: 16 }}>
+              <motion.button
+                className="btn btn-emerald btn-lg btn-full"
+                onClick={() => navigate('/checkout')}
+                whileHover={{ scale: 1.02, boxShadow: '0 0 30px rgba(16,185,129,0.5)' }}
+                whileTap={{ scale: 0.97 }}
+                style={{ gap: 8 }}
+              >
+                Proceed to Checkout <ArrowRight size={18} />
+              </motion.button>
+            </div>
 
             <div className="divider" />
 

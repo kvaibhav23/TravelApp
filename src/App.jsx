@@ -10,6 +10,8 @@ import ConsensusDashboard from './pages/ConsensusDashboard';
 import Checkout from './pages/Checkout';
 import AIPlanner from './pages/AIPlanner';
 import ActiveTrip from './pages/ActiveTrip';
+import StartPlanning from './pages/StartPlanning';
+import PackageDetail from './pages/PackageDetail';
 
 const pageVariants = {
   initial: { opacity: 0, y: 12 },
@@ -48,6 +50,8 @@ function App() {
           <Route path="/checkout" element={<AnimatedPage><Checkout /></AnimatedPage>} />
           <Route path="/ai-planner" element={<AnimatedPage><AIPlanner /></AnimatedPage>} />
           <Route path="/trip" element={<AnimatedPage><ActiveTrip /></AnimatedPage>} />
+          <Route path="/start-planning" element={<AnimatedPage><StartPlanning /></AnimatedPage>} />
+          <Route path="/package/:id" element={<AnimatedPage><PackageDetail /></AnimatedPage>} />
         </Routes>
       </AnimatePresence>
       {!hideNav && <BottomNav />}

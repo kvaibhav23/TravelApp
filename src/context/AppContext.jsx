@@ -14,7 +14,7 @@ const initialState = {
   // Auth & User
   currentUser: CURRENT_USER,
   isAuthenticated: false,
-  kycStatus: 'not-started', // not-started | lite | full | verified
+  dpdpConsent: false,
   userRole: null, // student | family | corporate
 
   // Group & Trip
@@ -25,6 +25,7 @@ const initialState = {
     status: 'planning', // planning | voting | booking | active | completed
     dates: 'Aug 14 – Aug 17, 2025',
     createdBy: 'u1',
+    inviteCode: 'WANDERZ-A8K3',
   },
 
   // Chat
@@ -45,6 +46,10 @@ const initialState = {
   expenses: TRIP_EXPENSES,
   tripActive: false,
 
+  // AI Planner
+  aiSuggestions: [],
+  sharedToGroup: [],
+
   // UI
   currentStep: 0, // onboarding step
   showCelebration: false,
@@ -58,8 +63,8 @@ function appReducer(state, action) {
     case 'SET_USER_ROLE':
       return { ...state, userRole: action.payload };
 
-    case 'SET_KYC_STATUS':
-      return { ...state, kycStatus: action.payload };
+    case 'SET_DPDP_CONSENT':
+      return { ...state, dpdpConsent: action.payload };
 
     case 'SET_ONBOARDING_STEP':
       return { ...state, currentStep: action.payload };
@@ -128,6 +133,22 @@ function appReducer(state, action) {
 
     case 'SET_TRIP_STATUS':
       return { ...state, activeTrip: { ...state.activeTrip, status: action.payload } };
+
+    case 'SET_AI_SUGGESTIONS':
+      return { ...state, aiSuggestions: action.payload };
+
+    case 'SHARE_TO_GROUP':
+      return { ...state, sharedToGroup: action.payload };
+
+    case 'ADD_GROUP_MEMBER': {
+      const exists = state.groupMembers.find(m => m.id === action.payload.id);
+      if (exists) return state;
+      return { ...state, groupMembers: [...state.groupMembers, action.payload] };
+    }
+
+    case 'INVITE_BY_EMAIL':
+      // In a real app, this would trigger an API call
+      return state;
 
     default:
       return state;

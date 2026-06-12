@@ -12,14 +12,15 @@ export const DESTINATIONS = [
     pricePerPerson: 12500,
     duration: '3N/4D',
     dates: 'Aug 14 – Aug 17',
-    flights: { from: ['Delhi', 'Mumbai'], type: 'Direct', airline: 'IndiGo' },
-    hotel: { name: 'Taj Exotica Resort & Spa', type: 'Beachfront Villa', stars: 5 },
+    flights: { from: ['Delhi', 'Mumbai'], type: 'Direct', airline: 'IndiGo', price: 4500, departureTime: '06:30 AM', arrivalTime: '09:15 AM' },
+    hotel: { name: 'Taj Exotica Resort & Spa', type: 'Beachfront Villa', stars: 5, pricePerNight: 6000, amenities: ['Pool', 'Spa', 'Beach Access', 'Restaurant', 'Gym'] },
     rooms: [
       { id: 'r1', name: 'Villa Master Suite', price: 18000, capacity: 2, image: '🏖️' },
       { id: 'r2', name: 'Deluxe Sea View', price: 14000, capacity: 2, image: '🌊' },
       { id: 'r3', name: 'Standard Room', price: 9000, capacity: 2, image: '🛏️' },
       { id: 'r4', name: 'Garden Cottage', price: 11000, capacity: 3, image: '🌴' },
     ],
+    activities: ['Beach Hopping', 'Water Sports', 'Sunset Cruise', 'Old Goa Heritage Walk', 'Night Market'],
     tags: ['Beach', 'Nightlife', 'Seafood', 'Water Sports'],
     explain: {
       budget: "Fits the group's ₹12k/person limit",
@@ -37,14 +38,15 @@ export const DESTINATIONS = [
     pricePerPerson: 11000,
     duration: '4N/5D',
     dates: 'Aug 14 – Aug 18',
-    flights: { from: ['Delhi'], type: 'Via Chandigarh + Bus', airline: 'SpiceJet' },
-    hotel: { name: 'The Himalayan', type: 'Mountain Lodge', stars: 4 },
+    flights: { from: ['Delhi'], type: 'Via Chandigarh + Bus', airline: 'SpiceJet', price: 3500, departureTime: '07:00 AM', arrivalTime: '08:30 AM + 6h bus' },
+    hotel: { name: 'The Himalayan', type: 'Mountain Lodge', stars: 4, pricePerNight: 4500, amenities: ['Fireplace', 'Mountain View', 'Restaurant', 'Trekking Desk'] },
     rooms: [
       { id: 'r1', name: 'Mountain View Suite', price: 15000, capacity: 2, image: '🏔️' },
       { id: 'r2', name: 'Premium Room', price: 12000, capacity: 2, image: '⛷️' },
       { id: 'r3', name: 'Standard Twin', price: 8000, capacity: 2, image: '🛏️' },
       { id: 'r4', name: 'Backpacker Dorm', price: 4000, capacity: 4, image: '🎒' },
     ],
+    activities: ['Rohtang Pass Visit', 'River Rafting', 'Solang Valley Paragliding', 'Old Manali Walk', 'Hadimba Temple'],
     tags: ['Mountains', 'Adventure', 'Trekking', 'Snow'],
     explain: {
       budget: "Under budget at ₹11k/person — saves ₹1k each",
@@ -62,14 +64,15 @@ export const DESTINATIONS = [
     pricePerPerson: 15500,
     duration: '3N/4D',
     dates: 'Aug 14 – Aug 17',
-    flights: { from: ['Delhi', 'Mumbai', 'Bangalore'], type: 'Direct to Kochi', airline: 'Air India' },
-    hotel: { name: 'Kumarakom Lake Resort', type: 'Houseboat + Lakeside Villa', stars: 5 },
+    flights: { from: ['Delhi', 'Mumbai', 'Bangalore'], type: 'Direct to Kochi', airline: 'Air India', price: 5500, departureTime: '08:00 AM', arrivalTime: '11:30 AM' },
+    hotel: { name: 'Kumarakom Lake Resort', type: 'Houseboat + Lakeside Villa', stars: 5, pricePerNight: 8000, amenities: ['Houseboat', 'Ayurveda Spa', 'Infinity Pool', 'Kayaking', 'Bird Watching'] },
     rooms: [
       { id: 'r1', name: 'Heritage Pool Villa', price: 22000, capacity: 2, image: '🏡' },
       { id: 'r2', name: 'Premium Houseboat', price: 16000, capacity: 2, image: '⛵' },
       { id: 'r3', name: 'Meandering Pool Villa', price: 19000, capacity: 3, image: '🌿' },
       { id: 'r4', name: 'Lake View Room', price: 12000, capacity: 2, image: '💧' },
     ],
+    activities: ['Houseboat Cruise', 'Ayurveda Massage', 'Backwater Kayaking', 'Spice Plantation Tour', 'Kathakali Show'],
     tags: ['Backwaters', 'Ayurveda', 'Houseboat', 'Nature'],
     explain: {
       compromise: "₹1,500 over budget — but only option with houseboat experience",
@@ -87,14 +90,15 @@ export const DESTINATIONS = [
     pricePerPerson: 13000,
     duration: '3N/4D',
     dates: 'Aug 14 – Aug 17',
-    flights: { from: ['Delhi', 'Mumbai'], type: 'Direct', airline: 'Vistara' },
-    hotel: { name: 'Taj Lake Palace', type: 'Heritage Palace', stars: 5 },
+    flights: { from: ['Delhi', 'Mumbai'], type: 'Direct', airline: 'Vistara', price: 4800, departureTime: '09:00 AM', arrivalTime: '10:30 AM' },
+    hotel: { name: 'Taj Lake Palace', type: 'Heritage Palace', stars: 5, pricePerNight: 7000, amenities: ['Lake View', 'Heritage Walk', 'Royal Dining', 'Boat Transfer', 'Cooking Class'] },
     rooms: [
       { id: 'r1', name: 'Royal Suite', price: 25000, capacity: 2, image: '👑' },
       { id: 'r2', name: 'Palace Room', price: 15000, capacity: 2, image: '🏰' },
       { id: 'r3', name: 'Heritage Standard', price: 10000, capacity: 2, image: '🛏️' },
       { id: 'r4', name: 'Lake View Room', price: 13000, capacity: 2, image: '🌅' },
     ],
+    activities: ['City Palace Tour', 'Lake Pichola Boat Ride', 'Monsoon Palace Sunset', 'Haldi Ghati Visit', 'Street Food Walk'],
     tags: ['Heritage', 'Culture', 'Photography', 'Romantic'],
     explain: {
       budget: "Within budget at ₹13k/person",
@@ -112,13 +116,14 @@ export const DESTINATIONS = [
     pricePerPerson: 18000,
     duration: '4N/5D',
     dates: 'Aug 14 – Aug 18',
-    flights: { from: ['Delhi', 'Chennai'], type: 'Via Port Blair', airline: 'IndiGo' },
-    hotel: { name: 'Taj Exotica Resort', type: 'Island Resort', stars: 5 },
+    flights: { from: ['Delhi', 'Chennai'], type: 'Via Port Blair', airline: 'IndiGo', price: 7000, departureTime: '05:30 AM', arrivalTime: '10:00 AM + ferry' },
+    hotel: { name: 'Taj Exotica Resort', type: 'Island Resort', stars: 5, pricePerNight: 9000, amenities: ['Private Beach', 'Scuba Center', 'Snorkeling', 'Glass Bottom Boat', 'Spa'] },
     rooms: [
       { id: 'r1', name: 'Beach Villa', price: 28000, capacity: 2, image: '🏝️' },
       { id: 'r2', name: 'Coral Room', price: 18000, capacity: 2, image: '🐠' },
       { id: 'r3', name: 'Garden Room', price: 14000, capacity: 2, image: '🌺' },
     ],
+    activities: ['Scuba Diving at Havelock', 'Radhanagar Beach Day', 'Neil Island Trip', 'Cellular Jail Sound & Light', 'Mangrove Kayaking'],
     tags: ['Island', 'Scuba Diving', 'Snorkeling', 'Pristine Beaches'],
     explain: {
       compromise: "₹3,000 over budget — but rated #1 island destination in India",
@@ -129,12 +134,12 @@ export const DESTINATIONS = [
 ];
 
 export const GROUP_MEMBERS = [
-  { id: 'u1', name: 'Arjun Mehta', avatar: 'AM', color: '#7c3aed', role: 'organizer', city: 'Delhi', budget: 15000, status: 'verified' },
-  { id: 'u2', name: 'Priya Sharma', avatar: 'PS', color: '#06b6d4', role: 'member', city: 'Mumbai', budget: 12000, status: 'verified' },
-  { id: 'u3', name: 'Rahul Singh', avatar: 'RS', color: '#10b981', role: 'member', city: 'Delhi', budget: 15000, status: 'verified' },
-  { id: 'u4', name: 'Neha Gupta', avatar: 'NG', color: '#f59e0b', role: 'member', city: 'Bangalore', budget: 18000, status: 'pending' },
-  { id: 'u5', name: 'Vikram Patel', avatar: 'VP', color: '#ff6b6b', role: 'member', city: 'Mumbai', budget: 13000, status: 'verified' },
-  { id: 'u6', name: 'Ananya Das', avatar: 'AD', color: '#f43f5e', role: 'member', city: 'Delhi', budget: 14000, status: 'not-started' },
+  { id: 'u1', name: 'Arjun Mehta', avatar: 'AM', color: '#7c3aed', role: 'organizer', city: 'Delhi', budget: 15000 },
+  { id: 'u2', name: 'Priya Sharma', avatar: 'PS', color: '#06b6d4', role: 'member', city: 'Mumbai', budget: 12000 },
+  { id: 'u3', name: 'Rahul Singh', avatar: 'RS', color: '#10b981', role: 'member', city: 'Delhi', budget: 15000 },
+  { id: 'u4', name: 'Neha Gupta', avatar: 'NG', color: '#f59e0b', role: 'member', city: 'Bangalore', budget: 18000 },
+  { id: 'u5', name: 'Vikram Patel', avatar: 'VP', color: '#ff6b6b', role: 'member', city: 'Mumbai', budget: 13000 },
+  { id: 'u6', name: 'Ananya Das', avatar: 'AD', color: '#f43f5e', role: 'member', city: 'Delhi', budget: 14000 },
 ];
 
 export const CURRENT_USER = GROUP_MEMBERS[0]; // Arjun is the logged-in user
@@ -176,21 +181,6 @@ export const LONG_WEEKENDS = [
   { date: 'Nov 1-5, 2025', holiday: 'Diwali Week', days: 5, suggestion: 'Andaman Island Paradise' },
 ];
 
-export const KYC_TIERS = {
-  lite: {
-    name: 'Lite KYC',
-    limit: '₹10,000',
-    requirements: ['Phone number', 'Email address', 'Basic details'],
-    time: '30 seconds'
-  },
-  full: {
-    name: 'Full KYC',
-    limit: 'Unlimited',
-    requirements: ['PAN Card', 'Aadhaar (via DigiLocker)', 'Selfie verification'],
-    time: '2-3 minutes'
-  }
-};
-
 export const PAYMENT_METHODS = [
   { id: 'gpay', name: 'Google Pay', icon: '💳', color: '#4285F4' },
   { id: 'phonepe', name: 'PhonePe', icon: '📱', color: '#5F259F' },
@@ -204,3 +194,9 @@ export const REFUND_POLICY = {
   partial: { days: 3, text: '50% refund if cancelled 3-7 days before trip' },
   none: { days: 0, text: 'No refund if cancelled less than 3 days before trip' },
 };
+
+export const INDIAN_CITIES = [
+  'Delhi', 'Mumbai', 'Bangalore', 'Chennai', 'Kolkata', 'Hyderabad',
+  'Pune', 'Ahmedabad', 'Jaipur', 'Lucknow', 'Chandigarh', 'Kochi',
+  'Goa', 'Bhopal', 'Indore', 'Nagpur', 'Coimbatore', 'Guwahati',
+];

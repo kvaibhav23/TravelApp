@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Settings, Send, ChevronLeft, Shield, X, AlertTriangle } from 'lucide-react';
+import { Settings, Send, ChevronLeft, Shield, X, AlertTriangle, Paperclip } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { CHAT_MESSAGES, GROUP_MEMBERS, REFUND_POLICY } from '../data/mockTravelData';
 import ChatMessage from '../components/ChatMessage';
@@ -9,8 +10,10 @@ import '../index.css';
 
 function TripChat() {
   const { state, dispatch } = useApp();
+  const navigate = useNavigate();
   const [inputText, setInputText] = useState('');
   const [showRefundBanner, setShowRefundBanner] = useState(true);
+  const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef(null);
   const messagesContainerRef = useRef(null);
 
@@ -24,6 +27,15 @@ function TripChat() {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [messages.length]);
+
+  const BOT_REPLIES = [
+    'That sounds amazing! 🎉',
+    'I\'m in! Let\'s do this 🔥',
+    'Great choice, checking the options now',
+    'Let me look at the budget for this 💰',
+    'This looks perfect for our group!',
+    'I love that idea! Who else is joining?',
+  ];
 
   const handleSend = () => {
     const trimmed = inputText.trim();
@@ -43,6 +55,26 @@ function TripChat() {
 
     dispatch({ type: 'ADD_MESSAGE', payload: newMessage });
     setInputText('');
+
+    // Simulate typing indicator + bot reply
+    setIsTyping(true);
+    const replyDelay = 1500 + Math.random() * 1500;
+    setTimeout(() => {
+      setIsTyping(false);
+      const replyUser = GROUP_MEMBERS.filter(m => m.id !== state.currentUser.id);
+      const randomUser = replyUser[Math.floor(Math.random() * replyUser.length)];
+      const randomReply = BOT_REPLIES[Math.floor(Math.random() * BOT_REPLIES.length)];
+      dispatch({
+        type: 'ADD_MESSAGE',
+        payload: {
+          id: `m${Date.now()}-reply`,
+          userId: randomUser.id,
+          text: randomReply,
+          time: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }),
+          type: 'text',
+        },
+      });
+    }, replyDelay);
   };
 
   const handleKeyDown = (e) => {
@@ -75,6 +107,7 @@ function TripChat() {
       >
         {/* Back Button */}
         <button
+          onClick={() => navigate(-1)}
           style={{
             background: 'none',
             border: 'none',
@@ -281,6 +314,32 @@ function TripChat() {
           <ChatMessage key={msg.id} message={msg} index={i} />
         ))}
 
+        {/* Typing indicator */}
+        {isTyping && (
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 8,
+              padding: '8px 0',
+            }}
+          >
+            <div className="avatar avatar-sm" style={{ background: '#06b6d4', fontSize: 10, width: 28, height: 28 }}>PS</div>
+            <div style={{
+              padding: '8px 14px',
+              background: 'var(--glass-bg)',
+              border: '1px solid var(--glass-border)',
+              borderRadius: '16px 16px 16px 4px',
+              display: 'flex', gap: 4, alignItems: 'center',
+            }}>
+              <motion.span animate={{ opacity: [0.3, 1, 0.3] }} transition={{ repeat: Infinity, duration: 0.8, delay: 0 }} style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--text-muted)' }} />
+              <motion.span animate={{ opacity: [0.3, 1, 0.3] }} transition={{ repeat: Infinity, duration: 0.8, delay: 0.2 }} style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--text-muted)' }} />
+              <motion.span animate={{ opacity: [0.3, 1, 0.3] }} transition={{ repeat: Infinity, duration: 0.8, delay: 0.4 }} style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--text-muted)' }} />
+            </div>
+          </motion.div>
+        )}
+
         <div ref={messagesEndRef} />
       </div>
 
@@ -290,10 +349,10 @@ function TripChat() {
         style={{
           padding: '10px var(--space-md)',
           paddingBottom: 'max(10px, env(safe-area-inset-bottom))',
-          background: 'rgba(10, 10, 26, 0.95)',
+          background: 'rgba(255, 255, 255, 0.95)',
           backdropFilter: 'blur(20px)',
           WebkitBackdropFilter: 'blur(20px)',
-          borderTop: '1px solid var(--glass-border)',
+          borderTop: '1px solid rgba(0,0,0,0.08)',
           display: 'flex',
           alignItems: 'center',
           gap: 'var(--space-sm)',

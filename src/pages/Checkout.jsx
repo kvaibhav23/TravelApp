@@ -7,7 +7,6 @@ import {
   GROUP_MEMBERS,
   REFUND_POLICY,
   PAYMENT_METHODS,
-  KYC_TIERS,
 } from '../data/mockTravelData';
 import {
   Shield,
@@ -104,8 +103,7 @@ function SplitPreAuthCheckout() {
   const claimedPerPersonProxy =
     Math.round((effectiveClaimsAmount / Math.max(1, paidByPeopleCount)) * 100) / 100;
 
-  const needsLiteKyc = claimedPerPersonProxy <= LITE_KYC_LIMIT;
-  const requiredKycTier = needsLiteKyc ? 'lite' : 'full';
+
 
   const taxes = Math.round((itinerary.pricePerPerson * paidByPeopleCount) * 0.12);
   const platformFee = 499;
@@ -556,16 +554,6 @@ function SplitPreAuthCheckout() {
             </p>
 
             <div style={{ marginTop: 10, display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-              <span
-                className="badge"
-                style={{
-                  background: requiredKycTier === 'full' ? 'rgba(124,58,237,0.12)' : 'rgba(16,185,129,0.10)',
-                  border: '1px solid rgba(124, 58, 237, 0.2)',
-                }}
-              >
-                KYC requirement: {KYC_TIERS[requiredKycTier]?.name || requiredKycTier} (demo rule)
-              </span>
-
               <span className="badge badge-emerald">
                 Quorum: {quorumSatisfiedCount}/{quorumMemberCount} ({quorumPct}%)
               </span>
@@ -956,7 +944,7 @@ export default function Checkout() {
       </AnimatePresence>
 
       <div style={{ marginTop: 18, textAlign: 'center', color: 'var(--text-muted)', fontSize: 11 }}>
-        Prototype only — integrations (UPI SDK / KYC API / booking aggregator) are mocked.
+        WanderZ — Your trip, simplified.
       </div>
     </div>
   );

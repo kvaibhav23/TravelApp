@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Plus,
@@ -11,8 +11,19 @@ import {
   X,
   ArrowRight,
   TicketPercent,
-  Zap,
-  Tags,
+  Menu,
+  Home as HomeIcon,
+  Plane,
+  MessageCircle,
+  CreditCard,
+  Settings,
+  Shield,
+  HelpCircle,
+  Copy,
+  CheckCircle2,
+  Mail,
+  Share2,
+  QrCode,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
@@ -67,7 +78,7 @@ const RECENT_ACTIVITY = [
   },
   {
     id: 'a3',
-    text: 'Rahul completed KYC verification',
+    text: 'Rahul joined the group trip',
     time: '1h ago',
     color: '#10b981',
     avatar: 'RS',
@@ -115,6 +126,22 @@ const QUICK_ACTIONS = [
     shadow: '0 0 20px rgba(16,185,129,0.35)',
     route: '/vote',
   },
+];
+
+/* ───── Hamburger Menu Items ───── */
+const MENU_ITEMS = [
+  { id: 'home', label: 'Home', icon: HomeIcon, route: '/' },
+  { id: 'plan', label: 'Start Planning', icon: Plane, route: '/start-planning' },
+  { id: 'ai', label: 'AI Planner', icon: Sparkles, route: '/ai-planner' },
+  { id: 'chat', label: 'Group Chat', icon: MessageCircle, route: '/chat' },
+  { id: 'payments', label: 'Payments', icon: CreditCard, route: '/checkout' },
+  { id: 'trip', label: 'Active Trip', icon: MapPin, route: '/trip' },
+];
+
+const MENU_ITEMS_SECONDARY = [
+  { id: 'privacy', label: 'Privacy (DPDP)', icon: Shield, route: null },
+  { id: 'settings', label: 'Settings', icon: Settings, route: null },
+  { id: 'help', label: 'Help & Support', icon: HelpCircle, route: null },
 ];
 
 /* ───── Mini Health Ring ───── */
@@ -187,7 +214,6 @@ function PackageAdCard({ ad, index, navigateTo }) {
       transition={{ duration: 0.35, delay: index * 0.04 }}
       whileTap={{ scale: 0.99 }}
     >
-      {/* Image (always visible while swiping horizontally) */}
       <div
         style={{
           width: '100%',
@@ -241,7 +267,7 @@ function PackageAdCard({ ad, index, navigateTo }) {
               alignItems: 'center',
             }}
           >
-            <TicketPercent size={12} /> Deal
+            <TicketPercent size={12} />Deal
           </span>
         </div>
       </div>
@@ -277,12 +303,11 @@ function PackageAdCard({ ad, index, navigateTo }) {
         </div>
       </div>
 
-        {/* Reduced spacing: removed “Book in 2 mins” meta row to prevent extra bottom space */}
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 10 }}>
           <motion.button
             className="btn btn-ghost"
             style={{ padding: '8px 10px' }}
-            onClick={() => ad.route ? navigateTo(ad.route) : undefined}
+            onClick={() => navigateTo(`/package/${ad.destId || ad.id}`)}
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
           >
@@ -295,158 +320,27 @@ function PackageAdCard({ ad, index, navigateTo }) {
   );
 }
 
-function DestinationSearchField({
-  label,
-  placeholder,
-  selected,
-  onSelect,
-  destinations,
-}) {
-  const [open, setOpen] = useState(false);
-  const [query, setQuery] = useState(selected?.name || '');
-  const rootRef = useRef(null);
-
-  useEffect(() => {
-    setQuery(selected?.name || '');
-  }, [selected?.name]);
-
-  useEffect(() => {
-    if (!open) return;
-    const onDocMouseDown = (e) => {
-      if (!rootRef.current) return;
-      if (!rootRef.current.contains(e.target)) setOpen(false);
-    };
-    document.addEventListener('mousedown', onDocMouseDown);
-    return () => document.removeEventListener('mousedown', onDocMouseDown);
-  }, [open]);
-
-  const filtered = useMemo(() => {
-    const q = (query || '').trim().toLowerCase();
-    if (!q) return destinations;
-
-    const withScore = destinations
-      .map((d) => {
-        const name = (d.name || '').toLowerCase();
-        const includes = name.includes(q);
-        if (!includes) return null;
-
-        const starts = name.startsWith(q);
-        const score = (starts ? 0 : 10) + (name.length - q.length);
-        return { d, score };
-      })
-      .filter(Boolean)
-      .sort((a, b) => a.score - b.score)
-      .map((x) => x.d);
-
-    return withScore.slice(0, 8);
-  }, [destinations, query]);
-
-  return (
-    <div ref={rootRef} style={{ position: 'relative' }}>
-      <div style={{ fontSize: 10, fontWeight: 900, color: 'var(--text-muted)' }}>{label}</div>
-
-      <input
-        value={query}
-        onFocus={() => setOpen(true)}
-        onChange={(e) => {
-          setQuery(e.target.value);
-          setOpen(true);
-        }}
-        placeholder={placeholder}
-        aria-label={label}
-        style={{
-          width: '100%',
-          marginTop: 6,
-          padding: '10px 12px',
-          borderRadius: 14,
-          border: '1px solid rgba(15,23,42,0.12)',
-          background: 'rgba(255,255,255,0.9)',
-          color: '#0f172a',
-          fontWeight: 800,
-          outline: 'none',
-        }}
-      />
-
-      <AnimatePresence>
-        {open && (
-          <motion.div
-            initial={{ opacity: 0, y: -6 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -6 }}
-            transition={{ duration: 0.15 }}
-            style={{
-              position: 'absolute',
-              left: 0,
-              right: 0,
-              top: 52,
-              zIndex: 20,
-              background: 'rgba(255,255,255,0.98)',
-              border: '1px solid rgba(15,23,42,0.10)',
-              borderRadius: 14,
-              overflow: 'hidden',
-              boxShadow: '0 16px 40px rgba(2, 6, 23, 0.10)',
-            }}
-          >
-            <div style={{ padding: '10px 12px', fontSize: 10, fontWeight: 900, color: 'var(--text-muted)' }}>
-              {filtered.length} destinations
-            </div>
-
-            <div style={{ maxHeight: 220, overflow: 'auto' }}>
-              {filtered.map((d) => (
-                <button
-                  key={d.id}
-                  type="button"
-                  onClick={() => {
-                    onSelect(d);
-                    setOpen(false);
-                  }}
-                  style={{
-                    width: '100%',
-                    textAlign: 'left',
-                    padding: '10px 12px',
-                    cursor: 'pointer',
-                    background: selected?.id === d.id ? 'rgba(124,58,237,0.10)' : 'transparent',
-                    border: 'none',
-                    borderTop: '1px solid rgba(15,23,42,0.06)',
-                    color: '#0f172a',
-                  }}
-                >
-                  <div style={{ fontSize: 12, fontWeight: 900 }}>{d.name}</div>
-                </button>
-              ))}
-            </div>
-
-            <div style={{ padding: '10px 12px', fontSize: 10, color: 'var(--text-muted)' }}>
-              Tip: type a letter (e.g., “go”)
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
-  );
-}
-
 function Home() {
   const { state } = useApp();
-  const [fromDest, setFromDest] = useState(DESTINATIONS[0]);
-  const [toDest, setToDest] = useState(DESTINATIONS[1]);
   const navigate = useNavigate();
   const [showJoinModal, setShowJoinModal] = useState(false);
+  const [showGroupTripModal, setShowGroupTripModal] = useState(false);
+  const [showHamburger, setShowHamburger] = useState(false);
   const [inviteCode, setInviteCode] = useState('');
-
-  const [departureDate, setDepartureDate] = useState('2025-08-14');
-  const [roomsCount, setRoomsCount] = useState(2);
-  const [guestsCount, setGuestsCount] = useState(6);
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [emailSent, setEmailSent] = useState(false);
+  const [codeCopied, setCodeCopied] = useState(false);
 
   const { currentUser, activeTrip, groupMembers } = state;
 
   const PACKAGE_ADS = useMemo(() => {
-    const picks = DESTINATIONS.slice(0, 3); // MVP: guaranteed images
+    const picks = DESTINATIONS.slice(0, 3);
     const [goa, kerala, rajasthan] = picks;
 
     return [
       {
         id: 'p1',
+        destId: 'goa-beach',
         image: goa?.image,
         title: 'Goa Beach Escape',
         subtitle: 'Flights + beachfront villa bundle (3N/4D) • limited seats',
@@ -454,10 +348,10 @@ function Home() {
         comparisonPrice: 28999,
         dealPrice: 21999,
         savingsPct: 24,
-        route: '/vote',
       },
       {
         id: 'p2',
+        destId: 'kerala-backwaters',
         image: kerala?.image,
         title: kerala?.name || 'Kerala Backwater Bliss',
         subtitle: 'Houseboat + stay • kid-friendly rooms + flexible timings',
@@ -465,10 +359,10 @@ function Home() {
         comparisonPrice: 34999,
         dealPrice: 26999,
         savingsPct: 23,
-        route: '/ai-planner',
       },
       {
         id: 'p3',
+        destId: 'rajasthan-royal',
         image: rajasthan?.image,
         title: rajasthan?.name || 'Royal Rajasthan Heritage',
         subtitle: 'Direct flights + hotel suite • optimized for 4 days',
@@ -476,15 +370,29 @@ function Home() {
         comparisonPrice: 59999,
         dealPrice: 45999,
         savingsPct: 23,
-        route: '/vote',
       },
     ];
   }, []);
 
+  const handleCopyCode = () => {
+    navigator.clipboard?.writeText(activeTrip.inviteCode || 'WANDERZ-A8K3');
+    setCodeCopied(true);
+    setTimeout(() => setCodeCopied(false), 2000);
+  };
+
+  const handleSendEmail = () => {
+    if (!inviteEmail.includes('@')) return;
+    setEmailSent(true);
+    setTimeout(() => {
+      setEmailSent(false);
+      setInviteEmail('');
+    }, 2500);
+  };
+
   return (
     <div className="page home-prof">
       <motion.div variants={containerVariants} initial="hidden" animate="visible">
-        {/* ─── Top trip type bar (professional header) ─── */}
+        {/* ─── Top Header with Hamburger ─── */}
         <motion.div
           variants={itemVariants}
           style={{
@@ -530,22 +438,25 @@ function Home() {
               </div>
             </div>
 
-            {/* User avatar */}
-            <motion.div
-              className="avatar"
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={{ delay: 0.1, type: 'spring', stiffness: 260, damping: 20 }}
+            {/* Hamburger Menu Button */}
+            <motion.button
+              whileTap={{ scale: 0.9 }}
+              onClick={() => setShowHamburger(true)}
               style={{
-                background: currentUser.color,
-                fontSize: 'var(--text-sm)',
-                width: 40,
-                height: 40,
-                boxShadow: `0 0 16px ${currentUser.color}44`,
+                width: 42,
+                height: 42,
+                borderRadius: 12,
+                background: 'rgba(124,58,237,0.08)',
+                border: '1px solid rgba(124,58,237,0.18)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                color: '#5b21b6',
               }}
             >
-              {currentUser.avatar}
-            </motion.div>
+              <Menu size={20} />
+            </motion.button>
           </div>
 
           <div style={{ padding: '10px var(--space-md) 0 var(--space-md)' }}>
@@ -560,7 +471,7 @@ function Home() {
                 className="glass-card"
                 whileHover={{ scale: 1.01 }}
                 whileTap={{ scale: 0.99 }}
-                onClick={() => navigate('/onboarding')}
+                onClick={() => navigate('/start-planning')}
                 style={{
                   padding: 12,
                   borderRadius: 14,
@@ -582,7 +493,7 @@ function Home() {
                 className="glass-card"
                 whileHover={{ scale: 1.01 }}
                 whileTap={{ scale: 0.99 }}
-                onClick={() => navigate('/vote')}
+                onClick={() => setShowGroupTripModal(true)}
                 style={{
                   padding: 12,
                   borderRadius: 14,
@@ -622,116 +533,46 @@ function Home() {
                 Join Trip
               </motion.button>
             </div>
-
           </div>
         </motion.div>
 
-        {/* From → To + basic controls (scrolls with page) */}
-        <div className="home-search-row">
-          <div className="home-search-grid">
-            <DestinationSearchField
-              label="FROM"
-              placeholder="From city"
-              selected={fromDest}
-              onSelect={setFromDest}
-              destinations={DESTINATIONS}
-            />
-
-            <DestinationSearchField
-              label="TO"
-              placeholder="To city"
-              selected={toDest}
-              onSelect={setToDest}
-              destinations={DESTINATIONS}
-            />
-
-            <div>
-              <div style={{ fontSize: 10, fontWeight: 900, color: 'var(--text-muted)' }}>DEPARTURE</div>
-              <input
-                type="date"
-                style={{
-                  width: '100%',
-                  marginTop: 6,
-                  padding: '10px 12px',
-                  borderRadius: 14,
-                  border: '1px solid rgba(15,23,42,0.12)',
-                  background: 'rgba(255,255,255,0.9)',
-                  color: '#0f172a',
-                  fontWeight: 800,
-                }}
-                value={departureDate}
-                onChange={(e) => setDepartureDate(e.target.value)}
-                aria-label="Departure date"
-              />
-            </div>
-
-            <div>
-              <div style={{ fontSize: 10, fontWeight: 900, color: 'var(--text-muted)' }}>ROOMS & GUESTS</div>
-
-              <div style={{ marginTop: 6, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                <input
-                  type="number"
-                  min={1}
-                  max={10}
-                  value={roomsCount}
-                  onChange={(e) => setRoomsCount(Math.max(1, Math.min(10, Number(e.target.value) || 1)))}
-                  aria-label="Rooms"
-                  style={{
-                    width: '100%',
-                    padding: '10px 10px',
-                    borderRadius: 14,
-                    border: '1px solid rgba(15,23,42,0.12)',
-                    background: 'rgba(255,255,255,0.9)',
-                    color: '#0f172a',
-                    fontWeight: 900,
-                    outline: 'none',
-                  }}
-                />
-                <input
-                  type="number"
-                  min={1}
-                  max={20}
-                  value={guestsCount}
-                  onChange={(e) => setGuestsCount(Math.max(1, Math.min(20, Number(e.target.value) || 1)))}
-                  aria-label="Guests"
-                  style={{
-                    width: '100%',
-                    padding: '10px 10px',
-                    borderRadius: 14,
-                    border: '1px solid rgba(15,23,42,0.12)',
-                    background: 'rgba(255,255,255,0.9)',
-                    color: '#0f172a',
-                    fontWeight: 900,
-                    outline: 'none',
-                  }}
-                />
+        {/* ─── Start Planning CTA ─── */}
+        <motion.div variants={itemVariants} style={{ marginBottom: 'var(--space-lg)' }}>
+          <motion.div
+            className="glass-card"
+            whileHover={{ scale: 1.01, y: -2 }}
+            whileTap={{ scale: 0.99 }}
+            onClick={() => navigate('/start-planning')}
+            style={{
+              cursor: 'pointer',
+              padding: '20px',
+              background: 'linear-gradient(135deg, rgba(124,58,237,0.08) 0%, rgba(6,182,212,0.06) 100%)',
+              border: '1px solid rgba(124,58,237,0.20)',
+              overflow: 'hidden',
+              position: 'relative',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+              <div style={{
+                width: 48, height: 48, borderRadius: 14,
+                background: 'linear-gradient(135deg, #7c3aed, #06b6d4)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                boxShadow: '0 4px 15px rgba(124,58,237,0.3)',
+              }}>
+                <Plane size={22} color="white" />
               </div>
-
-              <div style={{ marginTop: 6, fontSize: 10, fontWeight: 800, color: '#0f172a', opacity: 0.85 }}>
-                {roomsCount} room{roomsCount === 1 ? '' : 's'} • {guestsCount} guest{guestsCount === 1 ? '' : 's'}
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 16, fontWeight: 900, fontFamily: 'var(--font-heading)', color: '#0f172a' }}>
+                  Start Planning Your Trip
+                </div>
+                <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>
+                  Set your destination, dates, budget & more
+                </div>
               </div>
+              <ArrowRight size={20} color="#7c3aed" />
             </div>
-
-            <button
-              className="btn btn-primary home-search-cta"
-              style={{
-                padding: '14px 18px',
-                borderRadius: 16,
-                fontWeight: 950,
-                letterSpacing: 0.2,
-                whiteSpace: 'nowrap',
-              }}
-              onClick={() =>
-                navigate(
-                  `/vote?from=${encodeURIComponent(fromDest?.name || '')}&to=${encodeURIComponent(toDest?.name || '')}&departure=${encodeURIComponent(departureDate)}&rooms=${roomsCount}&guests=${guestsCount}`
-                )
-              }
-            >
-              Search
-              <ArrowRight size={18} />
-            </button>
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
 
         {/* ─── Long Weekend Detector ─── */}
         <motion.div variants={itemVariants} style={{ marginBottom: 'var(--space-lg)' }}>
@@ -789,18 +630,6 @@ function Home() {
               <PackageAdCard key={ad.id} ad={ad} index={idx} navigateTo={navigate} />
             ))}
           </motion.div>
-
-          <div
-            style={{
-              marginTop: 10,
-              color: 'var(--text-muted)',
-              fontSize: 11,
-              lineHeight: 1.4,
-              padding: '0 var(--space-md)',
-            }}
-          >
-            OTA-style demo: deals show comparison price + savings, without overwhelming the user.
-          </div>
         </motion.div>
 
         {/* ─── Active Trips Section ─── */}
@@ -837,154 +666,55 @@ function Home() {
             </span>
           </div>
 
-          {/* Trip Card */}
-        <motion.div
-          className="glass-card"
-          variants={scaleIn}
-          whileHover={{ scale: 1.015, y: -2 }}
-          whileTap={{ scale: 0.98 }}
-          onClick={() => navigate('/chat')}
-          style={{
-            cursor: 'pointer',
-            position: 'relative',
-            overflow: 'hidden',
-            padding: 'var(--space-lg)',
-          }}
-        >
-          {/* Gradient accent top */}
-          <div
+          <motion.div
+            className="glass-card"
+            variants={scaleIn}
+            whileHover={{ scale: 1.015, y: -2 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={() => navigate('/chat')}
             style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              right: 0,
-              height: 3,
-              background: 'var(--gradient-aurora)',
+              cursor: 'pointer',
+              position: 'relative',
+              overflow: 'hidden',
+              padding: 'var(--space-lg)',
             }}
-          />
+          >
+            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: 'var(--gradient-aurora)' }} />
+            <div style={{ position: 'absolute', inset: 0, backgroundImage: `url(${DESTINATIONS.find(d => d.name === activeTrip.name)?.image || ''})`, backgroundSize: 'cover', backgroundPosition: 'center', filter: 'blur(0px)', opacity: 0.18 }} />
+            <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(10,10,26,0.15) 0%, rgba(10,10,26,0.85) 70%)' }} />
 
-          {/* Trip image */}
-          <div
-            style={{
-              position: 'absolute',
-              inset: 0,
-              backgroundImage: `url(${DESTINATIONS.find((d) => d.name === activeTrip.name)?.image || ''})`,
-              backgroundSize: 'cover',
-              backgroundPosition: 'center',
-              filter: 'blur(0px)',
-              opacity: 0.18,
-            }}
-          />
-          <div
-            style={{
-              position: 'absolute',
-              inset: 0,
-              background: 'linear-gradient(180deg, rgba(10,10,26,0.15) 0%, rgba(10,10,26,0.85) 70%)',
-            }}
-          />
-
-            <div
-              style={{
-                position: 'relative',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'flex-start',
-                gap: 'var(--space-md)',
-              }}
-            >
+            <div style={{ position: 'relative', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 'var(--space-md)' }}>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <h4
-                  style={{
-                    fontSize: 'var(--text-base)',
-                    fontWeight: 700,
-                    marginBottom: 6,
-                    fontFamily: 'var(--font-heading)',
-                  }}
-                >
+                <h4 style={{ fontSize: 'var(--text-base)', fontWeight: 700, marginBottom: 6, fontFamily: 'var(--font-heading)' }}>
                   {activeTrip.name}
                 </h4>
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 6,
-                    marginBottom: 10,
-                  }}
-                >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
                   <MapPin size={13} color="var(--text-muted)" />
-                  <span
-                    style={{
-                      fontSize: 'var(--text-xs)',
-                      color: 'var(--text-secondary)',
-                    }}
-                  >
+                  <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)' }}>
                     {activeTrip.dates}
                   </span>
                 </div>
-
-                {/* Status badge */}
                 <span className="badge badge-amber" style={{ textTransform: 'capitalize' }}>
                   ⏳ {activeTrip.status}
                 </span>
               </div>
-
-              {/* Mini Health Score */}
               <MiniHealthRing percent={20} />
             </div>
 
-            {/* Bottom row: avatars + arrow */}
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginTop: 'var(--space-md)',
-                paddingTop: 'var(--space-md)',
-                borderTop: '1px solid var(--glass-border)',
-              }}
-            >
-              {/* Avatar group */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'var(--space-md)', paddingTop: 'var(--space-md)', borderTop: '1px solid var(--glass-border)' }}>
               <div className="avatar-group">
-                {groupMembers.slice(0, 4).map((member) => (
-                  <div
-                    key={member.id}
-                    className="avatar avatar-sm"
-                    style={{
-                      background: member.color,
-                      fontSize: 10,
-                      width: 28,
-                      height: 28,
-                    }}
-                  >
+                {groupMembers.slice(0, 4).map(member => (
+                  <div key={member.id} className="avatar avatar-sm" style={{ background: member.color, fontSize: 10, width: 28, height: 28 }}>
                     {member.avatar}
                   </div>
                 ))}
                 {groupMembers.length > 4 && (
-                  <div
-                    className="avatar avatar-sm"
-                    style={{
-                      background: 'var(--bg-tertiary)',
-                      fontSize: 9,
-                      width: 28,
-                      height: 28,
-                      color: 'var(--text-secondary)',
-                    }}
-                  >
+                  <div className="avatar avatar-sm" style={{ background: 'var(--bg-tertiary)', fontSize: 9, width: 28, height: 28, color: 'var(--text-secondary)' }}>
                     +{groupMembers.length - 4}
                   </div>
                 )}
               </div>
-
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 4,
-                  fontSize: 'var(--text-xs)',
-                  color: 'var(--accent-secondary)',
-                  fontWeight: 600,
-                }}
-              >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 'var(--text-xs)', color: 'var(--accent-secondary)', fontWeight: 600 }}>
                 <Users size={14} />
                 <span>{groupMembers.length} members</span>
                 <ChevronRight size={14} />
@@ -995,24 +725,10 @@ function Home() {
 
         {/* ─── Quick Actions ─── */}
         <motion.div variants={itemVariants} style={{ marginBottom: 'var(--space-lg)' }}>
-          <h3
-            style={{
-              fontSize: 'var(--text-lg)',
-              fontWeight: 700,
-              fontFamily: 'var(--font-heading)',
-              marginBottom: 'var(--space-md)',
-            }}
-          >
+          <h3 style={{ fontSize: 'var(--text-lg)', fontWeight: 700, fontFamily: 'var(--font-heading)', marginBottom: 'var(--space-md)' }}>
             Quick Actions
           </h3>
-
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: '1fr 1fr',
-              gap: 'var(--space-md)',
-            }}
-          >
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-md)' }}>
             {QUICK_ACTIONS.map((action, index) => {
               const Icon = action.icon;
               return (
@@ -1024,44 +740,19 @@ function Home() {
                   whileHover={{ scale: 1.04, y: -3 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={() => {
-                    if (action.route) {
-                      navigate(action.route);
-                    } else {
-                      setShowJoinModal(true);
-                    }
+                    if (action.route) navigate(action.route);
+                    else setShowJoinModal(true);
                   }}
                   style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    gap: 'var(--space-sm)',
-                    padding: 'var(--space-lg) var(--space-md)',
-                    cursor: 'pointer',
-                    border: '1px solid var(--glass-border)',
-                    textAlign: 'center',
+                    display: 'flex', flexDirection: 'column', alignItems: 'center',
+                    gap: 'var(--space-sm)', padding: 'var(--space-lg) var(--space-md)',
+                    cursor: 'pointer', border: '1px solid var(--glass-border)', textAlign: 'center',
                   }}
                 >
-                  <div
-                    style={{
-                      width: 48,
-                      height: 48,
-                      borderRadius: 'var(--radius-md)',
-                      background: action.bg,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      boxShadow: action.shadow,
-                    }}
-                  >
+                  <div style={{ width: 48, height: 48, borderRadius: 'var(--radius-md)', background: action.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: action.shadow }}>
                     <Icon size={22} color="white" />
                   </div>
-                  <span
-                    style={{
-                      fontSize: 'var(--text-sm)',
-                      fontWeight: 600,
-                      color: 'var(--text-primary)',
-                    }}
-                  >
+                  <span style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--text-primary)' }}>
                     {action.label}
                   </span>
                 </motion.button>
@@ -1072,31 +763,11 @@ function Home() {
 
         {/* ─── Recent Activity ─── */}
         <motion.div variants={itemVariants} style={{ marginBottom: 'var(--space-lg)' }}>
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              marginBottom: 'var(--space-md)',
-            }}
-          >
-            <h3
-              style={{
-                fontSize: 'var(--text-lg)',
-                fontWeight: 700,
-                fontFamily: 'var(--font-heading)',
-              }}
-            >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-md)' }}>
+            <h3 style={{ fontSize: 'var(--text-lg)', fontWeight: 700, fontFamily: 'var(--font-heading)' }}>
               Recent Activity
             </h3>
-            <span
-              style={{
-                fontSize: 'var(--text-xs)',
-                color: 'var(--accent-secondary)',
-                fontWeight: 600,
-                cursor: 'pointer',
-              }}
-            >
+            <span style={{ fontSize: 'var(--text-xs)', color: 'var(--accent-secondary)', fontWeight: 600, cursor: 'pointer' }}>
               View all
             </span>
           </div>
@@ -1109,49 +780,20 @@ function Home() {
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.5 + index * 0.08, duration: 0.4 }}
                 style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 'var(--space-md)',
+                  display: 'flex', alignItems: 'center', gap: 'var(--space-md)',
                   padding: '14px var(--space-lg)',
-                  borderBottom:
-                    index < RECENT_ACTIVITY.length - 1
-                      ? '1px solid var(--glass-border)'
-                      : 'none',
+                  borderBottom: index < RECENT_ACTIVITY.length - 1 ? '1px solid var(--glass-border)' : 'none',
                 }}
               >
-                <div
-                  className="avatar avatar-sm"
-                  style={{
-                    background:
-                      activity.avatar === '🤖'
-                        ? 'var(--gradient-primary)'
-                        : activity.color,
-                    fontSize: activity.avatar === '🤖' ? 14 : 10,
-                    width: 32,
-                    height: 32,
-                  }}
-                >
+                <div className="avatar avatar-sm" style={{ background: activity.avatar === '🤖' ? 'var(--gradient-primary)' : activity.color, fontSize: activity.avatar === '🤖' ? 14 : 10, width: 32, height: 32 }}>
                   {activity.avatar}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <p
-                    style={{
-                      fontSize: 'var(--text-sm)',
-                      color: 'var(--text-primary)',
-                      lineHeight: 1.4,
-                    }}
-                  >
+                  <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-primary)', lineHeight: 1.4 }}>
                     {activity.text}
                   </p>
                 </div>
-                <span
-                  style={{
-                    fontSize: 'var(--text-xs)',
-                    color: 'var(--text-muted)',
-                    whiteSpace: 'nowrap',
-                    flexShrink: 0,
-                  }}
-                >
+                <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', whiteSpace: 'nowrap', flexShrink: 0 }}>
                   {activity.time}
                 </span>
               </motion.div>
@@ -1165,26 +807,188 @@ function Home() {
         </motion.div>
       </motion.div>
 
-      {/* ─── Join Trip Modal ─── */}
+      {/* ─── Hamburger Menu Drawer ─── */}
       <AnimatePresence>
-        {showJoinModal && (
+        {showHamburger && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             style={{
-              position: 'fixed',
-              inset: 0,
-              background: 'rgba(10, 10, 26, 0.85)',
-              backdropFilter: 'blur(12px)',
-              WebkitBackdropFilter: 'blur(12px)',
-              zIndex: 50,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              padding: 'var(--space-lg)',
+              position: 'fixed', inset: 0,
+              background: 'rgba(10, 10, 26, 0.6)',
+              backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)',
+              zIndex: 100,
             }}
+            onClick={() => setShowHamburger(false)}
+          >
+            <motion.div
+              initial={{ x: -320 }}
+              animate={{ x: 0 }}
+              exit={{ x: -320 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                position: 'absolute', top: 0, left: 0, bottom: 0,
+                width: 300, maxWidth: '85vw',
+                background: '#ffffff',
+                boxShadow: '4px 0 30px rgba(0,0,0,0.15)',
+                display: 'flex', flexDirection: 'column',
+                overflow: 'auto',
+              }}
+            >
+              {/* User Profile */}
+              <div style={{
+                padding: '24px 20px 16px',
+                background: 'linear-gradient(135deg, rgba(124,58,237,0.08), rgba(6,182,212,0.06))',
+                borderBottom: '1px solid rgba(124,58,237,0.15)',
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div className="avatar" style={{ background: currentUser.color, width: 48, height: 48, fontSize: 16, boxShadow: `0 0 16px ${currentUser.color}44` }}>
+                    {currentUser.avatar}
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 16, fontWeight: 900, fontFamily: 'var(--font-heading)', color: '#0f172a' }}>
+                      {currentUser.name}
+                    </div>
+                    <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 2, textTransform: 'capitalize' }}>
+                      {state.userRole || 'Traveler'} • {currentUser.city}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Primary Menu */}
+              <div style={{ padding: '12px 8px', flex: 1 }}>
+                <div style={{ fontSize: 10, fontWeight: 800, color: 'var(--text-muted)', padding: '8px 12px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  Navigate
+                </div>
+                {MENU_ITEMS.map(item => {
+                  const Icon = item.icon;
+                  return (
+                    <motion.button
+                      key={item.id}
+                      whileTap={{ scale: 0.97 }}
+                      onClick={() => {
+                        setShowHamburger(false);
+                        if (item.route) navigate(item.route);
+                      }}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 12,
+                        width: '100%', padding: '12px 12px',
+                        background: 'none', border: 'none',
+                        borderRadius: 10, cursor: 'pointer',
+                        color: '#0f172a', fontSize: 14, fontWeight: 600,
+                        transition: 'background 0.15s ease',
+                      }}
+                      onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(124,58,237,0.06)'}
+                      onMouseLeave={(e) => e.currentTarget.style.background = 'none'}
+                    >
+                      <div style={{
+                        width: 36, height: 36, borderRadius: 10,
+                        background: 'rgba(124,58,237,0.08)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        color: '#7c3aed',
+                      }}>
+                        <Icon size={18} />
+                      </div>
+                      {item.label}
+                    </motion.button>
+                  );
+                })}
+
+                <div style={{ height: 1, background: 'rgba(0,0,0,0.06)', margin: '8px 12px' }} />
+
+                <div style={{ fontSize: 10, fontWeight: 800, color: 'var(--text-muted)', padding: '8px 12px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  More
+                </div>
+                {MENU_ITEMS_SECONDARY.map(item => {
+                  const Icon = item.icon;
+                  return (
+                    <motion.button
+                      key={item.id}
+                      whileTap={{ scale: 0.97 }}
+                      onClick={() => setShowHamburger(false)}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 12,
+                        width: '100%', padding: '12px 12px',
+                        background: 'none', border: 'none',
+                        borderRadius: 10, cursor: 'pointer',
+                        color: '#64748b', fontSize: 14, fontWeight: 500,
+                      }}
+                    >
+                      <div style={{
+                        width: 36, height: 36, borderRadius: 10,
+                        background: 'rgba(100,116,139,0.08)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        color: '#94a3b8',
+                      }}>
+                        <Icon size={18} />
+                      </div>
+                      {item.label}
+                    </motion.button>
+                  );
+                })}
+              </div>
+
+              {/* Close */}
+              <div style={{ padding: '12px 20px', borderTop: '1px solid rgba(0,0,0,0.06)' }}>
+                <button
+                  onClick={() => setShowHamburger(false)}
+                  style={{
+                    width: '100%', padding: '12px',
+                    background: 'rgba(124,58,237,0.06)',
+                    border: '1px solid rgba(124,58,237,0.15)',
+                    borderRadius: 12, cursor: 'pointer',
+                    color: '#7c3aed', fontWeight: 700, fontSize: 13,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                  }}
+                >
+                  <X size={16} /> Close Menu
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ─── Join Trip Modal ─── */}
+      <AnimatePresence>
+        {showJoinModal && (
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            style={{ position: 'fixed', inset: 0, background: 'rgba(10, 10, 26, 0.85)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 'var(--space-lg)' }}
             onClick={() => setShowJoinModal(false)}
+          >
+            <motion.div className="glass-card-elevated" initial={{ scale: 0.85, opacity: 0, y: 30 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.85, opacity: 0, y: 30 }} transition={{ type: 'spring', stiffness: 300, damping: 25 }} onClick={(e) => e.stopPropagation()} style={{ width: '100%', maxWidth: 380 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-lg)' }}>
+                <h3 style={{ fontSize: 'var(--text-xl)', fontWeight: 700, fontFamily: 'var(--font-heading)' }}>Join a Trip</h3>
+                <button onClick={() => setShowJoinModal(false)} style={{ background: 'var(--glass-bg-strong)', border: '1px solid var(--glass-border)', borderRadius: 'var(--radius-full)', width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--text-secondary)' }}>
+                  <X size={16} />
+                </button>
+              </div>
+              <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', marginBottom: 'var(--space-lg)', lineHeight: 1.5 }}>
+                Enter the invite code shared by your trip organizer to join their group.
+              </p>
+              <div className="input-group">
+                <label className="input-label">Invite Code</label>
+                <input className="input" type="text" placeholder="e.g. WANDERZ-ABCD" value={inviteCode} onChange={(e) => setInviteCode(e.target.value)} style={{ textAlign: 'center', letterSpacing: '0.1em', fontWeight: 600, textTransform: 'uppercase' }} />
+              </div>
+              <button className="btn btn-primary btn-full" style={{ marginTop: 'var(--space-sm)' }} onClick={() => { setShowJoinModal(false); setInviteCode(''); }}>
+                <ArrowRight size={18} /> Join Trip
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ─── Group Trip Management Modal ─── */}
+      <AnimatePresence>
+        {showGroupTripModal && (
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            style={{ position: 'fixed', inset: 0, background: 'rgba(10, 10, 26, 0.85)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 'var(--space-lg)' }}
+            onClick={() => setShowGroupTripModal(false)}
           >
             <motion.div
               className="glass-card-elevated"
@@ -1193,85 +997,118 @@ function Home() {
               exit={{ scale: 0.85, opacity: 0, y: 30 }}
               transition={{ type: 'spring', stiffness: 300, damping: 25 }}
               onClick={(e) => e.stopPropagation()}
-              style={{
-                width: '100%',
-                maxWidth: 380,
-              }}
+              style={{ width: '100%', maxWidth: 420, maxHeight: '85vh', overflow: 'auto' }}
             >
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  marginBottom: 'var(--space-lg)',
-                }}
-              >
-                <h3
-                  style={{
-                    fontSize: 'var(--text-xl)',
-                    fontWeight: 700,
-                    fontFamily: 'var(--font-heading)',
-                  }}
-                >
-                  Join a Trip
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-md)' }}>
+                <h3 style={{ fontSize: 'var(--text-xl)', fontWeight: 700, fontFamily: 'var(--font-heading)' }}>
+                  <Users size={20} style={{ display: 'inline', marginRight: 8, verticalAlign: 'middle' }} />
+                  Group Trip
                 </h3>
-                <button
-                  onClick={() => setShowJoinModal(false)}
-                  style={{
-                    background: 'var(--glass-bg-strong)',
-                    border: '1px solid var(--glass-border)',
-                    borderRadius: 'var(--radius-full)',
-                    width: 32,
-                    height: 32,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'pointer',
-                    color: 'var(--text-secondary)',
-                  }}
-                >
+                <button onClick={() => setShowGroupTripModal(false)} style={{ background: 'var(--glass-bg-strong)', border: '1px solid var(--glass-border)', borderRadius: 'var(--radius-full)', width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--text-secondary)' }}>
                   <X size={16} />
                 </button>
               </div>
 
-              <p
-                style={{
-                  fontSize: 'var(--text-sm)',
-                  color: 'var(--text-secondary)',
-                  marginBottom: 'var(--space-lg)',
-                  lineHeight: 1.5,
-                }}
-              >
-                Enter the invite code shared by your trip organizer to join their group.
-              </p>
-
-              <div className="input-group">
-                <label className="input-label">Invite Code</label>
-                <input
-                  className="input"
-                  type="text"
-                  placeholder="e.g. WANDERZ-ABCD"
-                  value={inviteCode}
-                  onChange={(e) => setInviteCode(e.target.value)}
-                  style={{
+              {/* Share Code */}
+              <div style={{ padding: '16px', background: 'rgba(124,58,237,0.06)', border: '1px solid rgba(124,58,237,0.18)', borderRadius: 14, marginBottom: 16 }}>
+                <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--text-muted)', marginBottom: 8, textTransform: 'uppercase' }}>
+                  <Share2 size={12} style={{ display: 'inline', marginRight: 4, verticalAlign: 'middle' }} />
+                  Share Invite Code
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{
+                    flex: 1, padding: '14px 16px',
+                    background: 'rgba(255,255,255,0.9)',
+                    border: '2px dashed rgba(124,58,237,0.30)',
+                    borderRadius: 10,
                     textAlign: 'center',
-                    letterSpacing: '0.1em',
-                    fontWeight: 600,
-                    textTransform: 'uppercase',
-                  }}
-                />
+                    fontSize: 20, fontWeight: 900, fontFamily: 'var(--font-heading)',
+                    letterSpacing: '0.15em', color: '#4c1d95',
+                  }}>
+                    {activeTrip.inviteCode || 'WANDERZ-A8K3'}
+                  </div>
+                  <motion.button
+                    whileTap={{ scale: 0.9 }}
+                    onClick={handleCopyCode}
+                    style={{
+                      width: 44, height: 44, borderRadius: 12,
+                      background: codeCopied ? 'rgba(16,185,129,0.15)' : 'rgba(124,58,237,0.10)',
+                      border: `1px solid ${codeCopied ? 'rgba(16,185,129,0.3)' : 'rgba(124,58,237,0.2)'}`,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      cursor: 'pointer', color: codeCopied ? '#059669' : '#7c3aed',
+                      transition: 'all 0.2s ease',
+                    }}
+                  >
+                    {codeCopied ? <CheckCircle2 size={18} /> : <Copy size={18} />}
+                  </motion.button>
+                </div>
+                {codeCopied && (
+                  <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} style={{ fontSize: 11, color: '#059669', fontWeight: 600, marginTop: 6, textAlign: 'center' }}>
+                    Code copied to clipboard!
+                  </motion.div>
+                )}
               </div>
 
-              <button
-                className="btn btn-primary btn-full"
-                style={{ marginTop: 'var(--space-sm)' }}
-                onClick={() => {
-                  setShowJoinModal(false);
-                  setInviteCode('');
-                }}
-              >
-                <ArrowRight size={18} />
-                Join Trip
+              {/* Invite via Email */}
+              <div style={{ padding: '16px', background: 'rgba(6,182,212,0.04)', border: '1px solid rgba(6,182,212,0.15)', borderRadius: 14, marginBottom: 16 }}>
+                <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--text-muted)', marginBottom: 8, textTransform: 'uppercase' }}>
+                  <Mail size={12} style={{ display: 'inline', marginRight: 4, verticalAlign: 'middle' }} />
+                  Invite via Email
+                </div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <div style={{ position: 'relative', flex: 1 }}>
+                    <Mail size={16} color="var(--text-muted)" style={{ position: 'absolute', top: 12, left: 12 }} />
+                    <input
+                      className="input"
+                      style={{ paddingLeft: 36, fontSize: 13 }}
+                      type="email"
+                      placeholder="friend@email.com"
+                      value={inviteEmail}
+                      onChange={(e) => setInviteEmail(e.target.value)}
+                    />
+                  </div>
+                  <motion.button
+                    whileTap={{ scale: 0.95 }}
+                    className={`btn ${emailSent ? 'btn-emerald' : 'btn-primary'}`}
+                    onClick={handleSendEmail}
+                    disabled={emailSent}
+                    style={{ whiteSpace: 'nowrap', fontSize: 12, padding: '10px 14px' }}
+                  >
+                    {emailSent ? <><CheckCircle2 size={14} /> Sent!</> : 'Send'}
+                  </motion.button>
+                </div>
+              </div>
+
+              {/* Current Members */}
+              <div style={{ marginBottom: 16 }}>
+                <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--text-muted)', marginBottom: 8, textTransform: 'uppercase' }}>
+                  Current Members ({groupMembers.length})
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  {groupMembers.map(m => (
+                    <div key={m.id} style={{
+                      display: 'flex', alignItems: 'center', gap: 10,
+                      padding: '8px 12px', borderRadius: 10,
+                      background: 'rgba(255,255,255,0.5)',
+                      border: '1px solid var(--glass-border)',
+                    }}>
+                      <div className="avatar avatar-sm" style={{ background: m.color, width: 28, height: 28, fontSize: 10 }}>
+                        {m.avatar}
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 13, fontWeight: 700 }}>{m.name}</div>
+                        <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>{m.city}</div>
+                      </div>
+                      <span className={`badge ${m.role === 'organizer' ? 'badge-primary' : 'badge-emerald'}`} style={{ fontSize: 9, padding: '2px 8px' }}>
+                        {m.role === 'organizer' ? 'Organizer' : 'Member'}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <button className="btn btn-primary btn-full" onClick={() => { setShowGroupTripModal(false); navigate('/vote'); }}>
+                <ThumbsUp size={16} /> Go to Group Voting <ArrowRight size={16} />
               </button>
             </motion.div>
           </motion.div>
